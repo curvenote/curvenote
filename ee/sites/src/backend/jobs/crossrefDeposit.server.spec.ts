@@ -79,8 +79,9 @@ beforeEach(() => {
 });
 
 describe('crossrefDepositHandler', () => {
-  it('posts with the site role or the Curvenote role and marks the attempt QUEUED, without a poll', async () => {
+  it('marks the attempt QUEUED and schedules the first poll in the same transaction', async () => {
     mocks.deposit.mockResolvedValue({ state: 'received' });
+    mocks.insertJobRow.mockResolvedValue({ jobId: 'job-poll' });
     const out = await crossrefDepositHandler(ctx, job);
     expect(mocks.deposit).toHaveBeenCalledWith(expect.objectContaining({ prefix: '10.62329' }), {
       role: 'curv',
@@ -93,8 +94,18 @@ describe('crossrefDepositHandler', () => {
         data: expect.objectContaining({ status: 'QUEUED' }),
       }),
     );
-    // No poll job is inserted.
-    expect(mocks.insertJobRow).not.toHaveBeenCalled();
+    expect(mocks.insertJobRow).toHaveBeenCalledWith(mocks.prisma, {
+      jobType: 'CROSSREF_POLL',
+      payload: { depositId: 'dep-1', siteId: 'site-a', attempt: 1 },
+      scheduledAt: expect.any(String),
+    });
+    const scheduledAt = mocks.insertJobRow.mock.calls[0][1].scheduledAt;
+    expect(new Date(scheduledAt).getTime()).toBeGreaterThan(Date.now());
+    expect(mocks.prisma.doiDeposit.update).toHaveBeenCalledWith({
+      where: { id: 'dep-1' },
+      data: { job_id: 'job-poll' },
+    });
+    // Promotion dispatches it; a dispatch here could be lost between commit and dispatch.
     expect(mocks.dispatchJob).not.toHaveBeenCalled();
     expect(out).toMatchObject({ status: 'COMPLETED' });
   });
@@ -188,7 +199,7 @@ describe('crossrefDepositHandler', () => {
     const out = await crossrefDepositHandler(ctx, job);
     expect(mocks.failDeposit).toHaveBeenCalledWith(mocks.prisma, {
       deposit: expect.objectContaining({ id: 'dep-1' }),
-      error: 'Crossref deposit was not received',
+      error: 'deposit_not_received',
       userId: 'sa-1',
     });
     expect(out).toMatchObject({ status: 'COMPLETED' });
@@ -249,6 +260,7 @@ describe('crossrefDepositHandler', () => {
       status: 'COMPLETED',
       message: expect.stringContaining('already advanced'),
     });
+    expect(mocks.insertJobRow).not.toHaveBeenCalled();
   });
 
   it('does not insert a reschedule job when another delivery already advanced the attempt', async () => {

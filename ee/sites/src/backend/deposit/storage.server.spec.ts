@@ -16,7 +16,7 @@ const storage = vi.hoisted(() => {
 });
 vi.mock('@curvenote/scms-server', () => storage);
 
-import { depositXmlKey, readPrivateXml, writePrivateXml } from './storage.server.js';
+import { depositXmlKey, readPrivateXml, resultXmlKey, writePrivateXml } from './storage.server.js';
 
 const ctx = { ctx: true } as any;
 
@@ -27,6 +27,10 @@ beforeEach(() => {
 describe('deposit storage keys', () => {
   it('places deposits under crossref/ in the private bucket', () => {
     expect(depositXmlKey('019a.xml')).toBe('crossref/deposits/019a.xml');
+  });
+
+  it('keeps result XML under crossref/results by file name', () => {
+    expect(resultXmlKey('dep-1.xml')).toBe('crossref/results/dep-1.xml');
   });
 });
 

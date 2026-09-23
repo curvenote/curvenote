@@ -6,6 +6,11 @@ export function depositXmlKey(fileName: string) {
   return `crossref/deposits/${fileName}`;
 }
 
+/** Crossref's processed result for one attempt, kept so a failed registration can be inspected. */
+export function resultXmlKey(fileName: string) {
+  return `crossref/results/${fileName}`;
+}
+
 export async function writePrivateXml(ctx: Context, key: string, xml: string) {
   const backend = new StorageBackend(ctx, [KnownBuckets.prv]);
   await new File(backend, key, KnownBuckets.prv).writeString(xml, 'application/xml');

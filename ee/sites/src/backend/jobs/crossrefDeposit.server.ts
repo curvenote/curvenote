@@ -13,6 +13,8 @@ import { insertJobRow } from './schedule.server.js';
 import { loadJobSite } from './site.server.js';
 
 const NO_DEPOSIT = 'no_deposit_after_72h';
+/** Crossref answered, but neither with a received deposit nor with something worth retrying. */
+const DEPOSIT_NOT_RECEIVED = 'deposit_not_received';
 
 /**
  * Crossref could not answer (5xx, maintenance, 429 rate limit) or did not answer (timeout): a
@@ -24,13 +26,32 @@ function isRetryable(error: CrossrefError) {
   return error.status === undefined || error.status === 429 || error.status >= 500;
 }
 
-/** PENDING -> QUEUED; false when another delivery already moved the attempt on. */
-async function markQueued(prisma: DoiDeps['prisma'], row: JobDepositRow): Promise<boolean> {
-  const { count } = await prisma.doiDeposit.updateMany({
-    where: { id: row.id, status: DOI_DEPOSIT_STATUS.PENDING },
-    data: { status: DOI_DEPOSIT_STATUS.QUEUED, date_modified: new Date().toISOString() },
+/**
+ * PENDING -> QUEUED plus the first CROSSREF_POLL, in one transaction; false when another delivery
+ * already moved the attempt on. The poll is a SCHEDULED row that the per-minute promotion
+ * dispatches: dispatching it here after commit could lose it, and then nothing would ever poll.
+ */
+async function markQueuedAndSchedulePoll(
+  prisma: DoiDeps['prisma'],
+  row: JobDepositRow,
+  payload: CrossrefJobPayload,
+): Promise<boolean> {
+  return prisma.$transaction(async (tx) => {
+    const updated = await tx.doiDeposit.updateMany({
+      where: { id: row.id, status: DOI_DEPOSIT_STATUS.PENDING },
+      data: { status: DOI_DEPOSIT_STATUS.QUEUED, date_modified: new Date().toISOString() },
+    });
+    if (updated.count === 0) {
+      return false;
+    }
+    const job = await insertJobRow(tx, {
+      jobType: KnownJobTypes.CROSSREF_POLL,
+      payload: { depositId: payload.depositId, siteId: payload.siteId, attempt: 1 },
+      scheduledAt: scheduledAtAfter(new Date(), 1),
+    });
+    await tx.doiDeposit.update({ where: { id: row.id }, data: { job_id: job.jobId } });
+    return true;
   });
-  return count === 1;
 }
 
 /**
@@ -94,20 +115,20 @@ async function postDeposit(
       await failDeposit(prisma, { deposit: row, error: 'site_credentials_rejected', userId });
       return complete(jobId, `deposit ${row.id}: unauthorized, attempt failed`);
     }
-    if (!(await markQueued(prisma, row))) {
+    if (!(await markQueuedAndSchedulePoll(prisma, row, payload))) {
       return complete(
         jobId,
         `deposit ${row.id}: received by Crossref, but already advanced by another delivery`,
       );
     }
-    return complete(jobId, `deposit ${row.id}: received by Crossref, QUEUED`);
+    return complete(jobId, `deposit ${row.id}: received by Crossref, QUEUED, first poll scheduled`);
   } catch (error) {
     if (!(error instanceof CrossrefError)) {
       throw error;
     }
     if (!isRetryable(error)) {
       // e.g. a 200 without SUCCESS in the body: Crossref answered, but not with a deposit.
-      await failDeposit(prisma, { deposit: row, error: error.message, userId });
+      await failDeposit(prisma, { deposit: row, error: DEPOSIT_NOT_RECEIVED, userId });
       return complete(jobId, `deposit ${row.id}: ${error.message}; attempt failed`);
     }
     if (pastHorizon(row, new Date())) {

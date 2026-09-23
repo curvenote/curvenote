@@ -5,7 +5,7 @@ import type { DoiTx } from '../doi/types.js';
 import type { CrossrefJobPayload } from './handler.server.js';
 
 type InsertJobParams = {
-  jobType: typeof KnownJobTypes.CROSSREF_DEPOSIT;
+  jobType: typeof KnownJobTypes.CROSSREF_DEPOSIT | typeof KnownJobTypes.CROSSREF_POLL;
   payload: CrossrefJobPayload;
   /** ISO time; in the future the row is SCHEDULED and the per-minute sweep dispatches it. */
   scheduledAt?: string;

@@ -39,6 +39,19 @@ describe('insertJobRow', () => {
     );
   });
 
+  it('accepts a CROSSREF_POLL job', async () => {
+    const tx = {} as any;
+    await insertJobRow(tx, {
+      jobType: 'CROSSREF_POLL',
+      payload: { depositId: 'd', siteId: 's', attempt: 1 },
+    });
+    expect(server.ensureJobRow).toHaveBeenCalledWith(
+      expect.objectContaining({ job_type: 'CROSSREF_POLL' }),
+      'QUEUED',
+      tx,
+    );
+  });
+
   it('dispatches through the handshake', async () => {
     await dispatchJob('job-1', 'CROSSREF_DEPOSIT');
     expect(server.dispatchJobWithHandshake).toHaveBeenCalledWith({
