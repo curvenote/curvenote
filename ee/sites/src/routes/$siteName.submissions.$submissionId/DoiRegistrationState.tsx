@@ -27,7 +27,7 @@ type DoiRegistrationStateProps = {
   fetcher: RegisterDoiFetcher;
 };
 
-/** The DOI row once a registration exists (designs: in progress, resubmitting, unsuccessful). */
+/** The DOI row once a registration exists: in progress, resubmitting, unsuccessful or registered. */
 export function DoiRegistrationState({
   registration,
   canRegister,

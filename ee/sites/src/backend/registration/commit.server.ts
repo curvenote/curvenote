@@ -51,7 +51,7 @@ export async function commitStart(
   const now = new Date().toISOString();
   let registrationId: string;
   if (plan.retry) {
-    // DRAFT: legacy rows from manual testing only (nothing creates DRAFT any more); retried like FAILED.
+    // DRAFT is the column default and nothing here writes it; a row left in it retries like FAILED.
     const { count } = await tx.doiRegistration.updateMany({
       where: {
         id: plan.retry.id,

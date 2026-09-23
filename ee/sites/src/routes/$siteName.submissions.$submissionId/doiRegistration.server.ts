@@ -2,11 +2,17 @@ import { DOI_DEPOSIT_STATUS, DOI_REGISTRATION_STATUS } from '@curvenote/scms-cor
 import { getPrismaClient } from '@curvenote/scms-server';
 import type { DoiRegistrationView } from './types.js';
 
-const SHOWN = new Set<string>([
-  DOI_REGISTRATION_STATUS.SUBMITTING,
-  DOI_REGISTRATION_STATUS.FAILED,
-  DOI_REGISTRATION_STATUS.REGISTERED,
-]);
+/** The statuses the DOI row has a state for. Any other row (DRAFT) leaves the Register button. */
+function shownStatus(status: string): DoiRegistrationView['status'] | null {
+  switch (status) {
+    case DOI_REGISTRATION_STATUS.SUBMITTING:
+    case DOI_REGISTRATION_STATUS.FAILED:
+    case DOI_REGISTRATION_STATUS.REGISTERED:
+      return status;
+    default:
+      return null;
+  }
+}
 
 /** The DOI row's state. `retried`: in progress again after a failed attempt ("Resubmitting…"). */
 export async function loadDoiRegistrationView(
@@ -21,12 +27,13 @@ export async function loadDoiRegistrationView(
       _count: { select: { attempts: { where: { status: DOI_DEPOSIT_STATUS.FAILED } } } },
     },
   });
-  if (!row || !SHOWN.has(row.status)) {
+  const status = row ? shownStatus(row.status) : null;
+  if (!row || !status) {
     return null;
   }
   return {
-    status: row.status as DoiRegistrationView['status'],
+    status,
     doi: row.doi,
-    retried: row.status === DOI_REGISTRATION_STATUS.SUBMITTING && row._count.attempts > 0,
+    retried: status === DOI_REGISTRATION_STATUS.SUBMITTING && row._count.attempts > 0,
   };
 }
