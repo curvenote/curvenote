@@ -2,6 +2,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SiteContextWithUser } from '@curvenote/scms-server';
 import { userHasScope, userHasSiteScope } from '@curvenote/scms-server';
+import { scopes } from '@curvenote/scms-core';
 import { crossrefCredentialsFromConfig } from '../../backend/crossref/client.server.js';
 import { startRegistration } from '../../backend/registration/start.server.js';
 import { actionRegisterDoi } from './doi.server.js';
@@ -31,7 +32,11 @@ describe('actionRegisterDoi', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(userHasSiteScope).mockReturnValue(true);
-    vi.mocked(userHasScope).mockReturnValue(true);
+    // The preview feature flag is granted by default; the isSystemAdmin scope stays false, as
+    // every test below already assumes.
+    vi.mocked(userHasScope).mockImplementation(
+      (_user, scope) => scope === scopes.app.sites.doi.feature,
+    );
     vi.mocked(crossrefCredentialsFromConfig).mockReturnValue({ prefix: '10.62329' } as never);
   });
 

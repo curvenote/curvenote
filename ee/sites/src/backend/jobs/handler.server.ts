@@ -9,7 +9,7 @@ import type { CrossrefJobPayload } from './schedule.server.js';
  * the job row's terminal status. Kept out of each handler so every Crossref job handler reads the
  * same shapes and the same completion helpers.
  */
-export const depositRowSelect = {
+const depositRowSelect = {
   id: true,
   status: true,
   file_name: true,

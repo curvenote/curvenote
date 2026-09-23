@@ -23,7 +23,7 @@ export type Plan = {
 };
 
 /** Bumping occ with ACTIVE in the WHERE serializes against unlink-role / reset, which bump it too. */
-export async function lockActiveSite(tx: DoiTx, siteId: string) {
+async function lockActiveSite(tx: DoiTx, siteId: string) {
   const { count } = await tx.siteDoiConfig.updateMany({
     where: { site_id: siteId, status: SITE_DOI_CONFIG_STATUS.ACTIVE },
     data: { occ: { increment: 1 } },
@@ -31,7 +31,7 @@ export async function lockActiveSite(tx: DoiTx, siteId: string) {
   return count === 1;
 }
 
-export type CommitInput = { plan: Plan; depositId: string; xmlPath: string; userId: string };
+type CommitInput = { plan: Plan; depositId: string; xmlPath: string; userId: string };
 
 /** The only write: registration SUBMITTING, attempt PENDING, job row and activity together. */
 export async function commitStart(

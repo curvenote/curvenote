@@ -41,7 +41,7 @@ export async function actionRegisterDoi(ctx: SiteContextWithUser, submissionId: 
   const result = await startRegistration(ctx, deps, {
     siteId: ctx.site.id,
     submissionId,
-    actor: { userId: ctx.user.id, isSystemAdmin: false },
+    actor: { userId: ctx.user.id, isSystemAdmin: userHasScope(ctx.user, scopes.system.admin) },
   });
   if (!result.ok) {
     const details = (result.issues ?? []).map((issue) => issue.message);
