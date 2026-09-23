@@ -2,11 +2,10 @@ import { useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { useFetcher } from 'react-router';
 import type { FetcherWithComponents } from 'react-router';
-import { ExternalLink } from 'lucide-react';
-import { buildUrl } from 'doi-utils';
 import { ui } from '@curvenote/scms-core';
 import type { DoiReadiness } from '../../backend/deposit/readiness.server.js';
 import type { RegisterDoiActionData } from './doi.server.js';
+import { DoiLink } from './DoiLink.js';
 import { DoiRegistrationState } from './DoiRegistrationState.js';
 import { RegisterDoi } from './RegisterDoi.js';
 import type { DoiRegistrationView } from './types.js';
@@ -49,19 +48,6 @@ export function DoiRow({
     }
   }, [fetcher.state, fetcher.data]);
 
-  if (doi) {
-    return (
-      <a
-        href={buildUrl(doi)}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex gap-1 items-center text-sm break-all text-primary hover:underline"
-      >
-        {doi}
-        <ExternalLink className="inline-block w-4 h-4 shrink-0" aria-hidden />
-      </a>
-    );
-  }
   if (registration) {
     return (
       <DoiRegistrationState
@@ -70,6 +56,9 @@ export function DoiRow({
         fetcher={fetcher}
       />
     );
+  }
+  if (doi) {
+    return <DoiLink doi={doi} />;
   }
   if (readiness) {
     return (

@@ -158,7 +158,8 @@ function getActivityDetails(activity: SubmissionDetailActivity): ReactNode {
       <ActivityDetailRows
         rows={[
           ['DOI', activity.doi_registration.doi],
-          ['Error', activity.doi_registration.error],
+          ['Reason', activity.doi_registration.reason],
+          ["Crossref's message", activity.doi_registration.detail],
           ['Warning', activity.doi_registration.warning],
         ]}
       />

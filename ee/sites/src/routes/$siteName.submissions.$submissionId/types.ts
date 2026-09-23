@@ -64,7 +64,8 @@ export type SubmissionDetailActivity = {
   date_published?: string;
   job_failure?: SubmissionDetailJobFailure;
   tag_change?: { label: string; action: 'added' | 'removed' };
-  doi_registration?: { doi: string; error?: string; warning?: string };
+  /** `reason` is readable, `detail` is Crossref's own words, `warning` is a registration's warning. */
+  doi_registration?: { doi: string; reason?: string; detail?: string; warning?: string };
 };
 
 export type SubmissionDetailSubmission = {

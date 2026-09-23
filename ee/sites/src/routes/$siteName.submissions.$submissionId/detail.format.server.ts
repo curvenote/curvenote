@@ -2,6 +2,7 @@ import { formatDate, type TagDTO } from '@curvenote/common';
 import type { SiteContext } from '@curvenote/scms-server';
 import { signPrivateUrls } from '@curvenote/scms-server';
 import { coerceToObject, type WorkflowTransition } from '@curvenote/scms-core';
+import { describeDoiFailure } from '../../backend/registration/failure.js';
 import { formatSiteLayoutSite } from '../$siteName/layout.format.server.js';
 import { findImportantVersions } from '../$siteName.submissions._index/listing.utils.server.js';
 import type {
@@ -77,6 +78,23 @@ function formatDetailVersion(
   };
 }
 
+type DoiRegistrationActivity = NonNullable<SubmissionDetailActivity['doi_registration']>;
+
+/** A failure's stored `error` is a code or Crossref's words; the timeline shows neither raw. */
+function formatDoiRegistrationActivity(
+  doi: string,
+  error: unknown,
+  warning: unknown,
+): DoiRegistrationActivity {
+  const failure = typeof error === 'string' && error ? describeDoiFailure(error) : undefined;
+  return {
+    doi,
+    reason: failure?.summary,
+    detail: failure?.detail,
+    warning: typeof warning === 'string' && warning ? warning : undefined,
+  };
+}
+
 function formatDetailActivity(
   ctx: SiteContext,
   activity: SubmissionDetailRow['activity'][number],
@@ -104,11 +122,7 @@ function formatDetailActivity(
 
   const doiRegistration =
     activity.activity_type.startsWith('DOI_REGISTRATION_') && typeof data?.doi === 'string'
-      ? {
-          doi: data.doi,
-          error: typeof data.error === 'string' ? data.error : undefined,
-          warning: typeof data.warning === 'string' ? data.warning : undefined,
-        }
+      ? formatDoiRegistrationActivity(data.doi, data.error, data.warning)
       : undefined;
 
   return {
