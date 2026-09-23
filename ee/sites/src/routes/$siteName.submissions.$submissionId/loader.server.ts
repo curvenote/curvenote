@@ -64,6 +64,27 @@ export type SubmissionDetailPageData = {
   doiReadiness: Promise<DoiReadiness> | null;
 };
 
+/**
+ * Starts the DOI readiness check without awaiting it, so the page streams it in. Null when the
+ * work already has a DOI or the viewer can't see DOI registration.
+ */
+function startDoiReadiness(
+  ctx: SiteContext,
+  submissionId: string,
+  activeVersion: SubmissionDetailVersion,
+): Promise<DoiReadiness> | null {
+  if (activeVersion.site_work.doi) {
+    return null;
+  }
+  const canSeeDoi =
+    userHasSiteScope(ctx.user, scopes.site.doi.read, ctx.site.id) &&
+    userHasScope(ctx.user, scopes.app.sites.doi.feature);
+  if (!canSeeDoi) {
+    return null;
+  }
+  return loadDoiReadiness(ctx, submissionId);
+}
+
 export async function loadSubmissionDetailPage(
   ctx: SiteContext,
   siteName: string,
@@ -147,11 +168,6 @@ export async function loadSubmissionDetailPage(
     mediaThumbnailUrl,
     activeVersionCdnConfig,
     siteTags,
-    doiReadiness:
-      !activeVersion.site_work.doi &&
-      userHasSiteScope(ctx.user, scopes.site.doi.read, ctx.site.id) &&
-      userHasScope(ctx.user, scopes.app.sites.doi.feature)
-        ? loadDoiReadiness(ctx, submissionId)
-        : null,
+    doiReadiness: startDoiReadiness(ctx, submissionId, activeVersion),
   };
 }
