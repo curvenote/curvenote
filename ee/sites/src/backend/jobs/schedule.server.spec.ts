@@ -10,14 +10,14 @@ describe('insertJobRow', () => {
   it('inserts a QUEUED row when not scheduled', async () => {
     const tx = {} as any;
     const result = await insertJobRow(tx, {
-      jobType: 'CROSSREF_POLL',
+      jobType: 'CROSSREF_DEPOSIT',
       payload: { depositId: 'd', siteId: 's', attempt: 1 },
     });
     expect(result.scheduled).toBe(false);
     expect(server.ensureJobRow).toHaveBeenCalledWith(
       expect.objectContaining({
         job_id: result.jobId,
-        job_type: 'CROSSREF_POLL',
+        job_type: 'CROSSREF_DEPOSIT',
         payload: { depositId: 'd', siteId: 's', attempt: 1 },
       }),
       'QUEUED',
@@ -42,10 +42,10 @@ describe('insertJobRow', () => {
   });
 
   it('dispatches through the handshake', async () => {
-    await dispatchJob('job-1', 'CROSSREF_POLL');
+    await dispatchJob('job-1', 'CROSSREF_DEPOSIT');
     expect(server.dispatchJobWithHandshake).toHaveBeenCalledWith({
       id: 'job-1',
-      job_type: 'CROSSREF_POLL',
+      job_type: 'CROSSREF_DEPOSIT',
     });
   });
 });

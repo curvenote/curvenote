@@ -17,7 +17,7 @@ function prisma() {
 
 const deposit = {
   id: 'dep-1',
-  status: 'QUEUED',
+  status: 'PENDING',
   submission_version_id: 'sv-1',
   registration: {
     id: 'reg-1',
@@ -37,7 +37,13 @@ beforeEach(() => {
 
 describe('failDeposit', () => {
   it('fails attempt and registration with the given error', async () => {
-    expect(await failDeposit(p, { deposit, error: 'no_result_after_72h' })).toBe('applied');
+    await failDeposit(p, { deposit, error: 'internal_error' });
+    expect(p.doiDeposit.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'dep-1', status: 'PENDING' },
+        data: expect.objectContaining({ status: 'FAILED', error: 'internal_error' }),
+      }),
+    );
     expect(p.doiRegistration.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ status: 'FAILED' }) }),
     );
@@ -49,13 +55,13 @@ describe('failDeposit', () => {
 
   it('does not write DOI_REGISTRATION_FAILED when the registration is no longer SUBMITTING', async () => {
     p.doiRegistration.updateMany.mockResolvedValue({ count: 0 });
-    expect(await failDeposit(p, { deposit, error: 'no_result_after_72h' })).toBe('applied');
+    await failDeposit(p, { deposit, error: 'internal_error' });
     expect(activity.writeRegistrationActivity).not.toHaveBeenCalled();
   });
 
-  it('is a no-op when the attempt was already settled (redelivery)', async () => {
+  it('is a no-op when the attempt is no longer PENDING (redelivery)', async () => {
     p.doiDeposit.updateMany.mockResolvedValue({ count: 0 });
-    expect(await failDeposit(p, { deposit, error: 'no_result_after_72h' })).toBe('skipped');
+    await failDeposit(p, { deposit, error: 'internal_error' });
     expect(p.doiRegistration.updateMany).not.toHaveBeenCalled();
     expect(activity.writeRegistrationActivity).not.toHaveBeenCalled();
   });
