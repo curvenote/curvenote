@@ -2,13 +2,10 @@ import { uuidv7 } from 'uuidv7';
 import type { KnownJobTypes } from '@curvenote/scms-core';
 import { dispatchJobWithHandshake, ensureJobRow } from '@curvenote/scms-server';
 import type { DoiTx } from '../doi/types.js';
+import type { CrossrefJobPayload } from './handler.server.js';
 
-export type CrossrefJobType =
-  typeof KnownJobTypes.CROSSREF_DEPOSIT | typeof KnownJobTypes.CROSSREF_POLL;
-export type CrossrefJobPayload = { depositId: string; siteId: string; attempt: number };
-
-export type InsertJobParams = {
-  jobType: CrossrefJobType;
+type InsertJobParams = {
+  jobType: typeof KnownJobTypes.CROSSREF_DEPOSIT;
   payload: CrossrefJobPayload;
   /** ISO time; in the future the row is SCHEDULED and the per-minute sweep dispatches it. */
   scheduledAt?: string;

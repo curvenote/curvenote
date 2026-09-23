@@ -8,7 +8,7 @@ import {
 import type { Context } from '@curvenote/scms-server';
 import { assembleDeposit } from '../deposit/assemble.server.js';
 import { depositXmlKey, writePrivateXml } from '../deposit/storage.server.js';
-import type { DoiActor, DoiDeps } from '../doi/types.js';
+import type { DoiDeps } from '../doi/types.js';
 import { dispatchJob } from '../jobs/schedule.server.js';
 import { commitStart } from './commit.server.js';
 import type { Plan } from './commit.server.js';
@@ -18,9 +18,9 @@ import type { RegistrationFailure } from './errors.js';
 
 const PUBLISHED = 'PUBLISHED';
 
-export type StartRegistrationInput = { siteId: string; submissionId: string; actor: DoiActor };
+type StartRegistrationInput = { siteId: string; submissionId: string; userId: string };
 
-export type StartRegistrationResult =
+type StartRegistrationResult =
   { ok: true; registrationId: string; depositId: string; doi: string } | RegistrationFailure;
 
 async function loadStart(
@@ -117,7 +117,7 @@ export async function startRegistration(
   let committed;
   try {
     committed = await deps.prisma.$transaction((tx) =>
-      commitStart(tx, { plan, depositId, xmlPath, userId: input.actor.userId }),
+      commitStart(tx, { plan, depositId, xmlPath, userId: input.userId }),
     );
   } catch (e: any) {
     // A concurrent first start won the submission_id (or doi) unique index. Prisma 7 +

@@ -1,8 +1,8 @@
+import { z } from 'zod';
 import { JobStatus } from '@curvenote/scms-db';
 import type { Prisma } from '@curvenote/scms-db';
 import { dbUpdateJob } from '@curvenote/scms-server';
 import type { DoiDeps } from '../doi/types.js';
-import type { CrossrefJobPayload } from './schedule.server.js';
 
 /**
  * Shared by the Crossref job handlers: loads the deposit row, parses the job payload, and writes
@@ -34,16 +34,16 @@ export function loadDeposit(prisma: DoiDeps['prisma'], depositId: string) {
   return prisma.doiDeposit.findUnique({ where: { id: depositId }, select: depositRowSelect });
 }
 
+const PayloadSchema = z.object({
+  depositId: z.string().min(1),
+  siteId: z.string().min(1),
+  attempt: z.number().int().min(1).default(1),
+});
+
+export type CrossrefJobPayload = z.output<typeof PayloadSchema>;
+
 export function parsePayload(payload: unknown): CrossrefJobPayload {
-  const p = payload as Partial<CrossrefJobPayload>;
-  if (typeof p?.depositId !== 'string' || typeof p?.siteId !== 'string') {
-    throw new Error('Crossref job payload needs depositId and siteId');
-  }
-  return {
-    depositId: p.depositId,
-    siteId: p.siteId,
-    attempt: typeof p.attempt === 'number' ? p.attempt : 1,
-  };
+  return PayloadSchema.parse(payload);
 }
 
 /** Handlers end through here: a message on the job row, a terminal status back to the runner. */

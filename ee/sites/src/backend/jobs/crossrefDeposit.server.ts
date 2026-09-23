@@ -8,9 +8,8 @@ import type { DoiDeps } from '../doi/types.js';
 import { failDeposit } from '../registration/result.server.js';
 import { pastHorizon, scheduledAtAfter } from './backoff.js';
 import { complete, fail, loadDeposit, parsePayload } from './handler.server.js';
-import type { JobDepositRow } from './handler.server.js';
+import type { CrossrefJobPayload, JobDepositRow } from './handler.server.js';
 import { insertJobRow } from './schedule.server.js';
-import type { CrossrefJobPayload } from './schedule.server.js';
 import { loadJobSite } from './site.server.js';
 
 const NO_DEPOSIT = 'no_deposit_after_72h';
@@ -25,7 +24,7 @@ function isRetryable(error: CrossrefError) {
   return error.status === undefined || error.status === 429 || error.status >= 500;
 }
 
-/** PENDING -> QUEUED. No poll job is inserted here. */
+/** PENDING -> QUEUED; false when another delivery already moved the attempt on. */
 async function markQueued(prisma: DoiDeps['prisma'], row: JobDepositRow): Promise<boolean> {
   const { count } = await prisma.doiDeposit.updateMany({
     where: { id: row.id, status: DOI_DEPOSIT_STATUS.PENDING },

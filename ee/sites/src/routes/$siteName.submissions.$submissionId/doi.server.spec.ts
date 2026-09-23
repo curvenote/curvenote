@@ -32,8 +32,6 @@ describe('actionRegisterDoi', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(userHasSiteScope).mockReturnValue(true);
-    // The preview feature flag is granted by default; the isSystemAdmin scope stays false, as
-    // every test below already assumes.
     vi.mocked(userHasScope).mockImplementation(
       (_user, scope) => scope === scopes.app.sites.doi.feature,
     );
@@ -91,27 +89,9 @@ describe('actionRegisterDoi', () => {
     expect(vi.mocked(startRegistration).mock.calls[0]).toEqual([
       ctx,
       { prisma: { fake: 'prisma' }, creds: { prefix: '10.62329' } },
-      {
-        siteId: 'site-a',
-        submissionId: 'sub-1',
-        actor: { userId: 'user-1', isSystemAdmin: false },
-      },
+      { siteId: 'site-a', submissionId: 'sub-1', userId: 'user-1' },
     ]);
     expect(result.data).toEqual({ info: 'DOI registration started for 10.1/x.' });
-  });
-
-  it('derives isSystemAdmin from the system:admin scope', async () => {
-    vi.mocked(userHasScope).mockReturnValue(true);
-    vi.mocked(startRegistration).mockResolvedValue({
-      ok: true,
-      registrationId: 'reg-1',
-      depositId: 'dep-1',
-      doi: '10.1/x',
-    });
-    await actionRegisterDoi(ctx, 'sub-1');
-    expect(vi.mocked(startRegistration).mock.calls[0][2]).toMatchObject({
-      actor: { userId: 'user-1', isSystemAdmin: true },
-    });
   });
 
   it('joins blocking issues into the error', async () => {

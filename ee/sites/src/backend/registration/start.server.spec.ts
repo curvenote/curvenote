@@ -59,7 +59,6 @@ function prisma() {
   return { p, tx: tx as any };
 }
 
-const actor = { userId: 'u1', isSystemAdmin: false };
 const creds = {
   host: 'https://doi.crossref.org',
   depositorEmail: 'doi@curvenote.com',
@@ -88,7 +87,7 @@ const run = () =>
   startRegistration(
     {} as any,
     { prisma: p, creds },
-    { siteId: SITE, submissionId: 'sub-1', actor },
+    { siteId: SITE, submissionId: 'sub-1', userId: 'u1' },
   );
 
 function expectNothingWritten() {
