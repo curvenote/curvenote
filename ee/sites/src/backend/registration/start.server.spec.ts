@@ -46,7 +46,7 @@ const NOT_ACTIVE = {
  */
 function prisma() {
   const models = {
-    submission: { findFirst: vi.fn() },
+    submission: { findFirst: vi.fn(), findUnique: vi.fn() },
     siteDoiConfig: {
       findUnique: vi.fn(),
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
@@ -79,6 +79,9 @@ beforeEach(() => {
   vi.clearAllMocks();
   ({ p, tx } = prisma());
   p.submission.findFirst.mockResolvedValue({ id: 'sub-1', doi: null, versions: [published] });
+  p.submission.findUnique.mockResolvedValue({
+    kind: { name: 'Article', content: {}, doi_content_type: 'PREPRINT' },
+  });
   p.siteDoiConfig.findUnique.mockResolvedValue({ prefix: PREFIX, status: 'ACTIVE' });
   p.doiRegistration.findUnique.mockResolvedValue(null);
   p.doiRegistration.create.mockResolvedValue({ id: 'reg-1' });
@@ -402,5 +405,39 @@ describe('startRegistration: write', () => {
     await expect(run()).rejects.toBe(collision);
     expect(p.doiRegistration.findUnique).toHaveBeenCalledTimes(2);
     expect(mocks.dispatchJob).not.toHaveBeenCalled();
+  });
+});
+
+describe('startRegistration: kind eligibility', () => {
+  const notEligible =
+    'Submissions of kind "Blog" can\'t receive DOIs. A site admin can enable it in DOI Registration.';
+
+  it('refuses when the kind stopped being eligible after the deposit was assembled', async () => {
+    p.submission.findUnique.mockResolvedValue({
+      kind: { name: 'Blog', content: {}, doi_content_type: null },
+    });
+
+    expect(await run()).toEqual({ ok: false, status: 409, error: notEligible });
+    expectNothingCreated();
+    expect(p.siteDoiConfig.updateMany.mock.invocationCallOrder[0]).toBeLessThan(
+      p.submission.findUnique.mock.invocationCallOrder[0],
+    );
+  });
+
+  it('answers a Retry on an ineligible kind with the not-eligible issue, writing nothing', async () => {
+    existing('FAILED');
+    mocks.assembleDeposit.mockResolvedValue({
+      issues: [{ severity: 'blocking', code: 'kind_not_eligible', message: notEligible }],
+      doi: DOI,
+    });
+
+    const result = await run();
+
+    expect(result).toMatchObject({
+      ok: false,
+      status: 400,
+      issues: [expect.objectContaining({ code: 'kind_not_eligible' })],
+    });
+    expectNothingWritten();
   });
 });

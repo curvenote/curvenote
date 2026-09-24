@@ -1,3 +1,4 @@
+import { kindNotEligibleMessage } from '../deposit/mapper.js';
 import type { DepositIssue } from '../deposit/types.js';
 
 export type RegistrationFailure = {
@@ -18,3 +19,7 @@ export const NOT_ACTIVE = failure(409, 'The site is not set up for DOI registrat
 export const IN_PROGRESS = failure(409, 'A registration is already in progress.');
 export const PREFIX_CHANGED = failure(409, "The site's DOI prefix changed. Try again.");
 export const NOT_QUEUED = failure(503, 'The DOI registration could not be queued. Try again.');
+
+export function kindNotEligible(kindTitle: string): RegistrationFailure {
+  return failure(409, kindNotEligibleMessage(kindTitle));
+}

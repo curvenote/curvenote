@@ -5,7 +5,9 @@ import {
   KnownJobTypes,
   SITE_DOI_CONFIG_STATUS,
 } from '@curvenote/scms-core';
+import { depositTypeForKind } from '../deposit/mapper.js';
 import type { DoiTx } from '../doi/types.js';
+import { kindTitle } from '../kinds.utils.js';
 import { insertJobRow } from '../jobs/schedule.server.js';
 import { writeRegistrationActivity } from './activity.server.js';
 import * as errors from './errors.js';
@@ -47,6 +49,18 @@ export async function commitStart(
   });
   if (site?.prefix !== plan.prefix) {
     return errors.PREFIX_CHANGED;
+  }
+  // Saving the kind mapping bumps the same occ, so this read comes after any save that raced
+  // with the assembly and sees the kind as it is now.
+  const submission = await tx.submission.findUnique({
+    where: { id: plan.submissionId },
+    select: { kind: { select: { name: true, content: true, doi_content_type: true } } },
+  });
+  if (!submission) {
+    return errors.NOT_FOUND;
+  }
+  if (!depositTypeForKind(submission.kind.doi_content_type)) {
+    return errors.kindNotEligible(kindTitle(submission.kind));
   }
   const now = new Date().toISOString();
   let registrationId: string;
