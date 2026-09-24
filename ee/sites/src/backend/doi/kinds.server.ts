@@ -7,7 +7,7 @@ import {
   isExpectedRow,
   toDTO,
 } from './db.server.js';
-import { DOI_ERRORS, DoiWriteRefused, STALE, kindLocked } from './errors.js';
+import { DOI_ERRORS, STALE, kindLocked } from './errors.js';
 import {
   dbGetSiteKinds,
   dbKindIdsWithLiveRegistrations,
@@ -55,6 +55,16 @@ export async function updateKindMapping(
   if (changes.length === 0) {
     return { ok: true, config: toDTO(existing) };
   }
+  // The page disables locked kinds; this refuses a crafted or outdated form. A registration that
+  // starts after this read bumps the config occ, so the write below answers stale instead.
+  const locked = await dbKindIdsWithLiveRegistrations(deps.prisma, {
+    siteId,
+    kindIds: changes.map(({ kind }) => kind.id),
+  });
+  const blocked = changes.find(({ kind }) => locked.has(kind.id));
+  if (blocked) {
+    return kindLocked(kindTitle(blocked.kind));
+  }
   const snapshot = changes.map(({ kind, value }) => ({
     id: kind.id,
     name: kind.name,
@@ -64,22 +74,10 @@ export async function updateKindMapping(
     deps,
     { siteId, actor: input.actor, action: 'update-kind-mapping', onUnique: STALE, kinds: snapshot },
     async (tx) => {
-      // Starting a registration bumps this occ too, so the two serialize on the config row: a
-      // registration that started after the page loaded makes this save stale.
+      // Starting a registration bumps this occ too, so the two serialize on the config row.
       const row = await dbUpdateDoiConfig(tx, existing, {});
-      // The page disables locked kinds; this refuses a crafted or outdated form.
-      const locked = await dbKindIdsWithLiveRegistrations(tx, {
-        siteId,
-        kindIds: changes.map(({ kind }) => kind.id),
-      });
-      const blocked = changes.find(({ kind }) => locked.has(kind.id));
-      if (blocked) {
-        throw new DoiWriteRefused(kindLocked(kindTitle(blocked.kind)));
-      }
       for (const { kind, value } of changes) {
-        if (!(await dbSetKindContentType(tx, { siteId, kindId: kind.id, value }))) {
-          throw new DoiWriteRefused(UNKNOWN_KIND);
-        }
+        await dbSetKindContentType(tx, { siteId, kindId: kind.id, value });
       }
       return row;
     },

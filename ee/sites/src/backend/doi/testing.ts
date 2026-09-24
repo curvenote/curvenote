@@ -53,7 +53,7 @@ export function makeDeps(fetchMock: ReturnType<typeof fakeFetch> = fakeFetch()) 
     doiRegistration: { findFirst: vi.fn().mockResolvedValue(null) },
     submissionKind: {
       findMany: vi.fn().mockResolvedValue([]),
-      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      update: vi.fn(),
     },
     submission: { findMany: vi.fn().mockResolvedValue([]) },
     activity: { create: vi.fn() },
@@ -81,6 +81,6 @@ export function wroteNothing(prisma: ReturnType<typeof makeDeps>['prisma']) {
     prisma.siteDoiConfig.update.mock.calls.length === 0 &&
     prisma.siteDoiConfig.delete.mock.calls.length === 0 &&
     prisma.activity.create.mock.calls.length === 0 &&
-    prisma.submissionKind.updateMany.mock.calls.length === 0
+    prisma.submissionKind.update.mock.calls.length === 0
   );
 }

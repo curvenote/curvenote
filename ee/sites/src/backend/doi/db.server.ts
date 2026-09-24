@@ -4,7 +4,7 @@ import { ActivityType } from '@curvenote/scms-db';
 import type { SiteDoiConfigMode, SiteDoiConfigStatus } from '@curvenote/scms-core';
 import { DOI_REGISTRATION_STATUS } from '@curvenote/scms-core';
 import { writeSiteDoiConfigActivity } from './activity.server.js';
-import { DoiWriteRefused, STALE } from './errors.js';
+import { STALE } from './errors.js';
 import type {
   DoiActor,
   DoiConfigRowData,
@@ -167,8 +167,7 @@ type DoiWrite = {
  * which knows the only unique constraint its write can hit: `site_id` on create, the custom
  * prefix/role pair on bind. We do not read `meta.target`, because the pair index is raw SQL that
  * Prisma's schema does not know. P2025 (no row matched `id` + `occ`) means another request changed
- * or removed the row. `fn` refuses by throwing `DoiWriteRefused`, which rolls back and becomes its
- * failure.
+ * or removed the row.
  */
 export async function commitDoiWrite(
   deps: DoiDeps,
@@ -189,9 +188,6 @@ export async function commitDoiWrite(
     });
     return { ok: true, config: row ? toDTO(row) : null };
   } catch (e: any) {
-    if (e instanceof DoiWriteRefused) {
-      return e.failure;
-    }
     if (e?.code === 'P2002') {
       return write.onUnique;
     }

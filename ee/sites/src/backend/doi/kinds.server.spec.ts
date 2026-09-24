@@ -45,8 +45,8 @@ describe('updateKindMapping', () => {
 
     expect(result).toMatchObject({ ok: true, config: { occ: 4 } });
     expect(prisma.siteDoiConfig.update.mock.calls[0][0].where).toEqual({ id: 'cfg-1', occ: 3 });
-    expect(prisma.submissionKind.updateMany).toHaveBeenCalledTimes(1);
-    expect(prisma.submissionKind.updateMany.mock.calls[0][0]).toMatchObject({
+    expect(prisma.submissionKind.update).toHaveBeenCalledTimes(1);
+    expect(prisma.submissionKind.update.mock.calls[0][0]).toMatchObject({
       where: { id: 'kind-article', site_id: 'site-a' },
       data: { doi_content_type: 'PREPRINT' },
     });
@@ -62,7 +62,7 @@ describe('updateKindMapping', () => {
 
     await updateKindMapping(deps, input([{ kindId: 'kind-blog', doiContentType: null }]));
 
-    expect(prisma.submissionKind.updateMany.mock.calls[0][0]).toMatchObject({
+    expect(prisma.submissionKind.update.mock.calls[0][0]).toMatchObject({
       where: { id: 'kind-blog', site_id: 'site-a' },
       data: { doi_content_type: null },
     });
@@ -80,7 +80,7 @@ describe('updateKindMapping', () => {
     expect(wroteNothing(prisma)).toBe(true);
   });
 
-  test('checks live registrations of the changed kinds only, after the occ bump', async () => {
+  test('checks live registrations of the changed kinds only', async () => {
     const { deps, prisma } = setup();
 
     await updateKindMapping(deps, input(bothPreprint));
@@ -90,20 +90,16 @@ describe('updateKindMapping', () => {
       kind_id: { in: ['kind-article'] },
       doiRegistration: { is: { status: { in: ['REGISTERED', 'SUBMITTING'] } } },
     });
-    expect(prisma.siteDoiConfig.update.mock.invocationCallOrder[0]).toBeLessThan(
-      prisma.submission.findMany.mock.invocationCallOrder[0],
-    );
   });
 
-  test('refuses a kind with a registered or in-flight DOI, naming it, and changes no kind', async () => {
+  test('refuses a kind with a registered or in-flight DOI, naming it, writing nothing', async () => {
     const { deps, prisma } = setup();
     prisma.submission.findMany.mockResolvedValue([{ kind_id: 'kind-article' }]);
 
     const result = await updateKindMapping(deps, input(bothPreprint));
 
     expect(result).toEqual(kindLocked('Research Article'));
-    expect(prisma.submissionKind.updateMany).not.toHaveBeenCalled();
-    expect(prisma.activity.create).not.toHaveBeenCalled();
+    expect(wroteNothing(prisma)).toBe(true);
   });
 
   test('refuses a kind id that is not on this site, writing nothing', async () => {
@@ -118,13 +114,15 @@ describe('updateKindMapping', () => {
     expect(wroteNothing(prisma)).toBe(true);
   });
 
-  test('refuses a kind deleted after it was read, logging nothing', async () => {
+  test('answers stale when a kind is deleted after it was read, logging nothing', async () => {
     const { deps, prisma } = setup();
-    prisma.submissionKind.updateMany.mockResolvedValue({ count: 0 });
+    prisma.submissionKind.update.mockRejectedValue(
+      Object.assign(new Error('not found'), { code: 'P2025' }),
+    );
 
     const result = await updateKindMapping(deps, input(bothPreprint));
 
-    expect(result).toEqual({ ok: false, status: 400, error: DOI_ERRORS.unknownKind });
+    expect(result).toMatchObject({ status: 409, error: DOI_ERRORS.stale });
     expect(prisma.activity.create).not.toHaveBeenCalled();
   });
 

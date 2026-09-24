@@ -28,11 +28,3 @@ export function kindLocked(title: string): DoiFailure {
     error: `"${title}" has DOIs registered or being registered, so its DOI content type cannot change. Nothing was saved.`,
   };
 }
-
-/** Thrown inside a `commitDoiWrite` transaction to roll it back and answer with `failure`. */
-export class DoiWriteRefused extends Error {
-  constructor(readonly failure: DoiFailure) {
-    super(failure.error);
-    this.name = 'DoiWriteRefused';
-  }
-}

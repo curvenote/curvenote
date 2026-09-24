@@ -39,20 +39,23 @@ export async function dbKindIdsWithLiveRegistrations(
 
 type SetKindContentTypeInput = { siteId: string; kindId: string; value: DoiContentType | null };
 
-/** `site_id` in the where keeps another site's kind out. False when nothing matched. */
-export async function dbSetKindContentType(
+/**
+ * `site_id` in the where keeps another site's kind out. A kind deleted since it was read makes
+ * this throw P2025, which commitDoiWrite answers as stale.
+ */
+export function dbSetKindContentType(
   tx: DoiTx,
   { siteId, kindId, value }: SetKindContentTypeInput,
 ) {
-  const { count } = await tx.submissionKind.updateMany({
+  return tx.submissionKind.update({
     where: { id: kindId, site_id: siteId },
     data: {
       doi_content_type: value,
       date_modified: new Date().toISOString(),
       occ: { increment: 1 },
     },
+    select: { id: true },
   });
-  return count === 1;
 }
 
 /** The Eligible Submission Kinds card's rows, in name order. */
