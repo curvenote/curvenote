@@ -14,7 +14,25 @@ export const DOI_ERRORS = {
   pairTaken: 'This prefix and role are already linked to another Site. Nothing was saved.',
   hasRegistrations:
     'This Site has DOIs registered or being registered, so its DOI setup cannot be unlinked or reset. Nothing was saved.',
+  unknownKind:
+    'A Submission Kind on this page no longer exists. Reload the page. Nothing was saved.',
 } as const;
 
 /** Another request changed or removed the row since the page loaded. */
 export const STALE: DoiFailure = { ok: false, status: 409, error: DOI_ERRORS.stale };
+
+export function kindLocked(title: string): DoiFailure {
+  return {
+    ok: false,
+    status: 409,
+    error: `"${title}" has DOIs registered or being registered, so its DOI content type cannot change. Nothing was saved.`,
+  };
+}
+
+/** Thrown inside a `commitDoiWrite` transaction to roll it back and answer with `failure`. */
+export class DoiWriteRefused extends Error {
+  constructor(readonly failure: DoiFailure) {
+    super(failure.error);
+    this.name = 'DoiWriteRefused';
+  }
+}

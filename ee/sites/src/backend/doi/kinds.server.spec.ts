@@ -1,0 +1,149 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
+import { describe, expect, test, vi } from 'vitest';
+import { DOI_ERRORS, kindLocked } from './errors.js';
+import { updateKindMapping } from './kinds.server.js';
+import type { KindMappingEntry } from './kinds.server.js';
+import { makeDeps, row, wroteNothing } from './testing.js';
+
+// The real package boots Prisma and the pg adapter; the service only needs the enum value.
+vi.mock('@curvenote/scms-db', () => ({
+  ActivityType: { SITE_DOI_CONFIG_UPDATED: 'SITE_DOI_CONFIG_UPDATED' },
+}));
+
+const actor = { userId: 'user-1', isSystemAdmin: false };
+const config = row({ mode: 'CURVENOTE_PREFIX', role: 'curv', status: 'ACTIVE', occ: 3 });
+const article = {
+  id: 'kind-article',
+  name: 'Article',
+  content: { title: 'Research Article' },
+  doi_content_type: null,
+};
+const blog = { id: 'kind-blog', name: 'Blog', content: {}, doi_content_type: 'PREPRINT' };
+
+function setup() {
+  const made = makeDeps();
+  made.prisma.siteDoiConfig.findUnique.mockResolvedValue(config);
+  made.prisma.siteDoiConfig.update.mockResolvedValue({ ...config, occ: 4 });
+  made.prisma.submissionKind.findMany.mockResolvedValue([article, blog]);
+  return made;
+}
+
+function input(kinds: KindMappingEntry[], occ = 3) {
+  return { siteId: 'site-a', actor, occ, kinds };
+}
+
+const bothPreprint: KindMappingEntry[] = [
+  { kindId: 'kind-article', doiContentType: 'PREPRINT' },
+  { kindId: 'kind-blog', doiContentType: 'PREPRINT' },
+];
+
+describe('updateKindMapping', () => {
+  test('saves only the kinds that changed, bumps the config occ and logs them', async () => {
+    const { deps, prisma } = setup();
+
+    const result = await updateKindMapping(deps, input(bothPreprint));
+
+    expect(result).toMatchObject({ ok: true, config: { occ: 4 } });
+    expect(prisma.siteDoiConfig.update.mock.calls[0][0].where).toEqual({ id: 'cfg-1', occ: 3 });
+    expect(prisma.submissionKind.updateMany).toHaveBeenCalledTimes(1);
+    expect(prisma.submissionKind.updateMany.mock.calls[0][0]).toMatchObject({
+      where: { id: 'kind-article', site_id: 'site-a' },
+      data: { doi_content_type: 'PREPRINT' },
+    });
+    expect(prisma.activity.create.mock.calls[0][0].data.data).toEqual({
+      action: 'update-kind-mapping',
+      config: expect.objectContaining({ status: 'ACTIVE' }),
+      kinds: [{ id: 'kind-article', name: 'Article', doi_content_type: 'PREPRINT' }],
+    });
+  });
+
+  test('stores null for a kind that is no longer eligible', async () => {
+    const { deps, prisma } = setup();
+
+    await updateKindMapping(deps, input([{ kindId: 'kind-blog', doiContentType: null }]));
+
+    expect(prisma.submissionKind.updateMany.mock.calls[0][0]).toMatchObject({
+      where: { id: 'kind-blog', site_id: 'site-a' },
+      data: { doi_content_type: null },
+    });
+  });
+
+  test('writes nothing when nothing changed', async () => {
+    const { deps, prisma } = setup();
+
+    const result = await updateKindMapping(
+      deps,
+      input([{ kindId: 'kind-blog', doiContentType: 'PREPRINT' }]),
+    );
+
+    expect(result).toMatchObject({ ok: true, config: { occ: 3 } });
+    expect(wroteNothing(prisma)).toBe(true);
+  });
+
+  test('checks live registrations of the changed kinds only, after the occ bump', async () => {
+    const { deps, prisma } = setup();
+
+    await updateKindMapping(deps, input(bothPreprint));
+
+    expect(prisma.submission.findMany.mock.calls[0][0].where).toEqual({
+      site_id: 'site-a',
+      kind_id: { in: ['kind-article'] },
+      doiRegistration: { is: { status: { in: ['REGISTERED', 'SUBMITTING'] } } },
+    });
+    expect(prisma.siteDoiConfig.update.mock.invocationCallOrder[0]).toBeLessThan(
+      prisma.submission.findMany.mock.invocationCallOrder[0],
+    );
+  });
+
+  test('refuses a kind with a registered or in-flight DOI, naming it, and changes no kind', async () => {
+    const { deps, prisma } = setup();
+    prisma.submission.findMany.mockResolvedValue([{ kind_id: 'kind-article' }]);
+
+    const result = await updateKindMapping(deps, input(bothPreprint));
+
+    expect(result).toEqual(kindLocked('Research Article'));
+    expect(prisma.submissionKind.updateMany).not.toHaveBeenCalled();
+    expect(prisma.activity.create).not.toHaveBeenCalled();
+  });
+
+  test('refuses a kind id that is not on this site, writing nothing', async () => {
+    const { deps, prisma } = setup();
+
+    const result = await updateKindMapping(
+      deps,
+      input([{ kindId: 'kind-of-another-site', doiContentType: 'PREPRINT' }]),
+    );
+
+    expect(result).toEqual({ ok: false, status: 400, error: DOI_ERRORS.unknownKind });
+    expect(wroteNothing(prisma)).toBe(true);
+  });
+
+  test('refuses a kind deleted after it was read, logging nothing', async () => {
+    const { deps, prisma } = setup();
+    prisma.submissionKind.updateMany.mockResolvedValue({ count: 0 });
+
+    const result = await updateKindMapping(deps, input(bothPreprint));
+
+    expect(result).toEqual({ ok: false, status: 400, error: DOI_ERRORS.unknownKind });
+    expect(prisma.activity.create).not.toHaveBeenCalled();
+  });
+
+  test('answers stale to an old occ', async () => {
+    const { deps, prisma } = setup();
+
+    const result = await updateKindMapping(deps, input(bothPreprint, 2));
+
+    expect(result).toMatchObject({ status: 409, error: DOI_ERRORS.stale });
+    expect(wroteNothing(prisma)).toBe(true);
+  });
+
+  test('answers stale when the DOI setup was reset meanwhile', async () => {
+    const { deps, prisma } = setup();
+    prisma.siteDoiConfig.findUnique.mockResolvedValue(null);
+
+    const result = await updateKindMapping(deps, input(bothPreprint));
+
+    expect(result).toMatchObject({ status: 409, error: DOI_ERRORS.stale });
+    expect(wroteNothing(prisma)).toBe(true);
+  });
+});

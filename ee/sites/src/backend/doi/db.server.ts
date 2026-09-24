@@ -4,7 +4,7 @@ import { ActivityType } from '@curvenote/scms-db';
 import type { SiteDoiConfigMode, SiteDoiConfigStatus } from '@curvenote/scms-core';
 import { DOI_REGISTRATION_STATUS } from '@curvenote/scms-core';
 import { writeSiteDoiConfigActivity } from './activity.server.js';
-import { STALE } from './errors.js';
+import { DoiWriteRefused, STALE } from './errors.js';
 import type {
   DoiActor,
   DoiConfigRowData,
@@ -14,6 +14,7 @@ import type {
   DoiIntent,
   DoiResult,
   DoiTx,
+  KindMappingSnapshot,
   SiteDoiConfigDTO,
 } from './types.js';
 
@@ -124,6 +125,12 @@ export async function dbGetRoleBoundBy(client: DoiDeps['prisma'], siteId: string
   return { name: display_name ?? username ?? 'Unknown user', date: activity.date_created };
 }
 
+/** Registrations Crossref holds or is receiving; see dbSiteHasLiveRegistrations for why they block. */
+export const LIVE_REGISTRATION_STATUSES: string[] = [
+  DOI_REGISTRATION_STATUS.REGISTERED,
+  DOI_REGISTRATION_STATUS.SUBMITTING,
+];
+
 /**
  * A registered DOI must keep resolving under the prefix and role it was deposited with, and a
  * deposit in flight must be able to finish polling. Either one blocks unlink and reset.
@@ -135,9 +142,7 @@ export async function dbSiteHasLiveRegistrations(
   const found = await client.doiRegistration.findFirst({
     where: {
       site_id: siteId,
-      status: {
-        in: [DOI_REGISTRATION_STATUS.REGISTERED, DOI_REGISTRATION_STATUS.SUBMITTING],
-      },
+      status: { in: LIVE_REGISTRATION_STATUSES },
     },
     select: { id: true },
   });
@@ -150,6 +155,8 @@ type DoiWrite = {
   action: DoiIntent;
   /** What a P2002 means for this write; see below. */
   onUnique: DoiFailure;
+  /** Logged with the write; see writeSiteDoiConfigActivity. */
+  kinds?: KindMappingSnapshot[];
 };
 
 /**
@@ -160,7 +167,8 @@ type DoiWrite = {
  * which knows the only unique constraint its write can hit: `site_id` on create, the custom
  * prefix/role pair on bind. We do not read `meta.target`, because the pair index is raw SQL that
  * Prisma's schema does not know. P2025 (no row matched `id` + `occ`) means another request changed
- * or removed the row.
+ * or removed the row. `fn` refuses by throwing `DoiWriteRefused`, which rolls back and becomes its
+ * failure.
  */
 export async function commitDoiWrite(
   deps: DoiDeps,
@@ -175,11 +183,15 @@ export async function commitDoiWrite(
         userId: write.actor.userId,
         action: write.action,
         config: written ? toSnapshot(written) : null,
+        kinds: write.kinds,
       });
       return written;
     });
     return { ok: true, config: row ? toDTO(row) : null };
   } catch (e: any) {
+    if (e instanceof DoiWriteRefused) {
+      return e.failure;
+    }
     if (e?.code === 'P2002') {
       return write.onUnique;
     }
