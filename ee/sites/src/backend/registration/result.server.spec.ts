@@ -27,7 +27,6 @@ const deposit = {
     status: 'SUBMITTING',
     submission_id: 'sub-1',
     site_id: 'site-a',
-    created_by_id: 'u1',
   },
 };
 
@@ -53,7 +52,7 @@ beforeEach(() => {
 
 describe('failDeposit', () => {
   it('fails an open attempt (sending or waiting) and the registration with the given error', async () => {
-    await failDeposit(p, { deposit, error: 'internal_error' });
+    await failDeposit(p, { deposit, error: 'internal_error', userId: 'sa-1' });
     expect(p.doiDeposit.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: 'dep-1', status: { in: ['PENDING', 'QUEUED'] } },
@@ -70,6 +69,7 @@ describe('failDeposit', () => {
       p,
       expect.objectContaining({
         type: 'DOI_REGISTRATION_FAILED',
+        userId: 'sa-1',
         data: { doi: '10.62329/abcd1234', depositId: 'dep-1', message: 'internal_error' },
       }),
     );
@@ -77,13 +77,13 @@ describe('failDeposit', () => {
 
   it('does not write DOI_REGISTRATION_FAILED when the registration is no longer SUBMITTING', async () => {
     p.doiRegistration.updateMany.mockResolvedValue({ count: 0 });
-    await failDeposit(p, { deposit, error: 'internal_error' });
+    await failDeposit(p, { deposit, error: 'internal_error', userId: 'sa-1' });
     expect(activity.writeRegistrationActivity).not.toHaveBeenCalled();
   });
 
   it('is a no-op when the attempt already has a result (redelivery)', async () => {
     p.doiDeposit.updateMany.mockResolvedValue({ count: 0 });
-    await failDeposit(p, { deposit, error: 'internal_error' });
+    await failDeposit(p, { deposit, error: 'internal_error', userId: 'sa-1' });
     expect(p.doiRegistration.updateMany).not.toHaveBeenCalled();
     expect(activity.writeRegistrationActivity).not.toHaveBeenCalled();
   });
@@ -95,6 +95,7 @@ describe('applyDepositResult', () => {
       deposit,
       result: completed('success', [{ status: 'success', message: 'Successfully added' }]),
       resultXmlPath,
+      userId: 'sa-1',
     });
     expect(p.doiDeposit.updateMany).toHaveBeenCalledWith({
       where: { id: 'dep-1', status: { in: ['PENDING', 'QUEUED'] } },
@@ -119,7 +120,7 @@ describe('applyDepositResult', () => {
       siteId: 'site-a',
       submissionId: 'sub-1',
       submissionVersionId: 'sv-1',
-      userId: 'u1',
+      userId: 'sa-1',
       data: { doi: '10.62329/abcd1234', depositId: 'dep-1', message: undefined },
     });
   });
@@ -129,6 +130,7 @@ describe('applyDepositResult', () => {
       deposit,
       result: completed('warning', [{ status: 'warning', message: 'Added with conflict' }]),
       resultXmlPath,
+      userId: 'sa-1',
     });
     expect(p.doiDeposit.updateMany.mock.calls[0][0].data).toMatchObject({
       status: 'SUCCEEDED',
@@ -139,6 +141,7 @@ describe('applyDepositResult', () => {
       p,
       expect.objectContaining({
         type: 'DOI_REGISTRATION_COMPLETED',
+        userId: 'sa-1',
         data: expect.objectContaining({ message: 'Added with conflict' }),
       }),
     );
@@ -150,6 +153,7 @@ describe('applyDepositResult', () => {
       deposit,
       result: completed('failure', [{ status: 'failure', message: xsd }]),
       resultXmlPath,
+      userId: 'sa-1',
     });
     expect(p.doiDeposit.updateMany.mock.calls[0][0].data).toMatchObject({
       status: 'FAILED',
@@ -164,6 +168,7 @@ describe('applyDepositResult', () => {
       p,
       expect.objectContaining({
         type: 'DOI_REGISTRATION_FAILED',
+        userId: 'sa-1',
         data: expect.objectContaining({ message: xsd }),
       }),
     );
@@ -174,6 +179,7 @@ describe('applyDepositResult', () => {
       deposit,
       result: completed('failure', [{ status: 'failure', message: '' }]),
       resultXmlPath,
+      userId: 'sa-1',
     });
     expect(p.doiDeposit.updateMany.mock.calls[0][0].data.error).toBe(CROSSREF_REJECTED);
   });
@@ -184,6 +190,7 @@ describe('applyDepositResult', () => {
       deposit,
       result: completed('success', [{ status: 'success', message: 'Successfully added' }]),
       resultXmlPath,
+      userId: 'sa-1',
     });
     expect(p.doiRegistration.updateMany).not.toHaveBeenCalled();
     expect(p.submission.update).not.toHaveBeenCalled();
@@ -196,6 +203,7 @@ describe('applyDepositResult', () => {
       deposit,
       result: completed('success', [{ status: 'success', message: 'Successfully added' }]),
       resultXmlPath,
+      userId: 'sa-1',
     });
     expect(p.submission.update).not.toHaveBeenCalled();
     expect(activity.writeRegistrationActivity).not.toHaveBeenCalled();

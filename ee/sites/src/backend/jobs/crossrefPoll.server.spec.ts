@@ -55,7 +55,6 @@ const row = (overrides = {}) => ({
     status: 'SUBMITTING',
     submission_id: 'sub-1',
     site_id: 'site-a',
-    created_by_id: 'u1',
   },
   ...overrides,
 });
@@ -65,7 +64,7 @@ const job = (attempt = 1) =>
     job_type: 'CROSSREF_POLL',
     payload: { depositId: 'dep-1', siteId: 'site-a', attempt },
   }) as any;
-const ctx = { $config: {} } as any;
+const ctx = { $config: { api: { submissionsServiceAccount: { id: 'sa-1' } } } } as any;
 const completed = {
   state: 'completed',
   submissionId: '9',
@@ -104,6 +103,7 @@ describe('crossrefPollHandler', () => {
       deposit: expect.objectContaining({ id: 'dep-1' }),
       result: expect.objectContaining({ outcome: 'success' }),
       resultXmlPath: 'crossref/results/dep-1.xml',
+      userId: 'sa-1',
     });
     expect(mocks.insertJobRow).not.toHaveBeenCalled();
     expect(out).toMatchObject({ status: 'COMPLETED' });
@@ -191,6 +191,7 @@ describe('crossrefPollHandler', () => {
     expect(mocks.failDeposit).toHaveBeenCalledWith(mocks.prisma, {
       deposit: expect.objectContaining({ id: 'dep-1' }),
       error: 'no_result_after_72h',
+      userId: 'sa-1',
     });
     expect(mocks.insertJobRow).not.toHaveBeenCalled();
   });
@@ -211,6 +212,7 @@ describe('crossrefPollHandler', () => {
     expect(mocks.failDeposit).toHaveBeenCalledWith(mocks.prisma, {
       deposit: expect.objectContaining({ id: 'dep-1' }),
       error: 'site_credentials_rejected',
+      userId: 'sa-1',
     });
     expect(mocks.insertJobRow).not.toHaveBeenCalled();
   });
@@ -221,7 +223,7 @@ describe('crossrefPollHandler', () => {
     expect(mocks.fetchDepositResult).not.toHaveBeenCalled();
     expect(mocks.failDeposit).toHaveBeenCalledWith(
       mocks.prisma,
-      expect.objectContaining({ error: 'site_not_active' }),
+      expect.objectContaining({ error: 'site_not_active', userId: 'sa-1' }),
     );
   });
 

@@ -12,7 +12,6 @@ type DepositRow = {
     doi: string;
     submission_id: string;
     site_id: string;
-    created_by_id: string;
   };
 };
 
@@ -43,13 +42,19 @@ async function settleDeposit(tx: DoiTx, deposit: DepositRow, data: SettleDeposit
 
 type ActivityType = 'DOI_REGISTRATION_COMPLETED' | 'DOI_REGISTRATION_FAILED';
 
-function writeActivity(tx: DoiTx, deposit: DepositRow, type: ActivityType, message?: string) {
+function writeActivity(
+  tx: DoiTx,
+  deposit: DepositRow,
+  userId: string,
+  type: ActivityType,
+  message?: string,
+) {
   return writeRegistrationActivity(tx, {
     type,
     siteId: deposit.registration.site_id,
     submissionId: deposit.registration.submission_id,
     submissionVersionId: deposit.submission_version_id,
-    userId: deposit.registration.created_by_id,
+    userId,
     data: { doi: deposit.registration.doi, depositId: deposit.id, message },
   });
 }
@@ -68,14 +73,19 @@ async function leaveSubmitting(tx: DoiTx, deposit: DepositRow, status: string) {
   return count === 1;
 }
 
-async function failRegistration(tx: DoiTx, deposit: DepositRow, message: string) {
+async function failRegistration(tx: DoiTx, deposit: DepositRow, userId: string, message: string) {
   if (await leaveSubmitting(tx, deposit, DOI_REGISTRATION_STATUS.FAILED)) {
-    await writeActivity(tx, deposit, 'DOI_REGISTRATION_FAILED', message);
+    await writeActivity(tx, deposit, userId, 'DOI_REGISTRATION_FAILED', message);
   }
 }
 
 /** `Submission.doi` is what resolution reads, so it is set exactly once, with REGISTERED. */
-async function registerSubmission(tx: DoiTx, deposit: DepositRow, warning?: string) {
+async function registerSubmission(
+  tx: DoiTx,
+  deposit: DepositRow,
+  userId: string,
+  warning?: string,
+) {
   if (!(await leaveSubmitting(tx, deposit, DOI_REGISTRATION_STATUS.REGISTERED))) {
     return;
   }
@@ -84,7 +94,7 @@ async function registerSubmission(tx: DoiTx, deposit: DepositRow, warning?: stri
     data: { doi: deposit.registration.doi },
     select: { id: true },
   });
-  await writeActivity(tx, deposit, 'DOI_REGISTRATION_COMPLETED', warning);
+  await writeActivity(tx, deposit, userId, 'DOI_REGISTRATION_COMPLETED', warning);
 }
 
 /** Crossref's messages for the records with this status, or undefined when it gave none. */
@@ -95,19 +105,30 @@ function messagesOf(result: Completed, status: Completed['outcome']) {
   return messages.length > 0 ? messages.join(' | ') : undefined;
 }
 
-type FailDepositInput = { deposit: DepositRow; error: string };
+/**
+ * `userId` is who the DOI_REGISTRATION_FAILED activity is attributed to. The caller names it
+ * because a failure can land long after the Register click, when the user who started the
+ * registration may no longer exist.
+ */
+type FailDepositInput = { deposit: DepositRow; error: string; userId: string };
 
 /** Attempt and registration fail with `error`; the site is untouched. */
 export async function failDeposit(prisma: DoiDeps['prisma'], input: FailDepositInput) {
-  const { deposit, error } = input;
+  const { deposit, error, userId } = input;
   await prisma.$transaction(async (tx) => {
     if (await settleDeposit(tx, deposit, { status: DOI_DEPOSIT_STATUS.FAILED, error })) {
-      await failRegistration(tx, deposit, error);
+      await failRegistration(tx, deposit, userId, error);
     }
   });
 }
 
-type ApplyDepositResultInput = { deposit: DepositRow; result: Completed; resultXmlPath: string };
+/** `userId` is who the result activity is attributed to, as for `failDeposit`. */
+type ApplyDepositResultInput = {
+  deposit: DepositRow;
+  result: Completed;
+  resultXmlPath: string;
+  userId: string;
+};
 
 /**
  * Settles one attempt on Crossref's processed result, in one transaction: success and warning
@@ -118,7 +139,7 @@ export async function applyDepositResult(
   prisma: DoiDeps['prisma'],
   input: ApplyDepositResultInput,
 ) {
-  const { deposit, result, resultXmlPath } = input;
+  const { deposit, result, resultXmlPath, userId } = input;
   await prisma.$transaction(async (tx) => {
     if (result.outcome === 'failure') {
       const error = messagesOf(result, 'failure') ?? CROSSREF_REJECTED;
@@ -128,7 +149,7 @@ export async function applyDepositResult(
         result_xml_path: resultXmlPath,
       });
       if (settled) {
-        await failRegistration(tx, deposit, error);
+        await failRegistration(tx, deposit, userId, error);
       }
       return;
     }
@@ -139,7 +160,7 @@ export async function applyDepositResult(
       result_xml_path: resultXmlPath,
     });
     if (settled) {
-      await registerSubmission(tx, deposit, warning);
+      await registerSubmission(tx, deposit, userId, warning);
     }
   });
 }

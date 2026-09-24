@@ -23,6 +23,7 @@ type PollInput = {
   row: JobDepositRow;
   role: string;
   jobId: string;
+  userId: string;
 };
 
 /**
@@ -31,18 +32,18 @@ type PollInput = {
  * result yet", because polling only reads and Crossref keeps the result, and failing here after
  * Crossref said Success would show a registered DOI as unsuccessful.
  */
-async function pollOnce({ ctx, prisma, row, role, jobId }: PollInput) {
+async function pollOnce({ ctx, prisma, row, role, jobId, userId }: PollInput) {
   const creds = crossrefCredentialsFromConfig(ctx.$config);
   try {
     const result = await fetchDepositResult(creds, { role, fileName: row.file_name });
     if (result.state === 'unauthorized') {
-      await failDeposit(prisma, { deposit: row, error: 'site_credentials_rejected' });
+      await failDeposit(prisma, { deposit: row, error: 'site_credentials_rejected', userId });
       return { done: await complete(jobId, `deposit ${row.id}: unauthorized, attempt failed`) };
     }
     if (result.state === 'completed') {
       const resultXmlPath = resultXmlKey(row.file_name);
       await writePrivateXml(ctx, resultXmlPath, result.xml);
-      await applyDepositResult(prisma, { deposit: row, result, resultXmlPath });
+      await applyDepositResult(prisma, { deposit: row, result, resultXmlPath, userId });
       return { done: await complete(jobId, `deposit ${row.id}: ${result.outcome}`) };
     }
     if (result.state === 'queued') {
@@ -100,7 +101,9 @@ async function reschedulePoll({ prisma, row, payload, crossrefSubmissionId }: Re
 
 /**
  * Reads the result of one received deposit. A processed result settles the attempt; anything else
- * polls again later, until 72 h after the attempt started.
+ * polls again later, until 72 h after the attempt started. The result is the job's doing, not the
+ * Register click's, so its activity goes to the platform service account; the user who started
+ * the registration may also be gone by the time Crossref answers.
  */
 export async function crossrefPollHandler(ctx: Context, data: CreateJob) {
   const payload = parsePayload(data.payload);
@@ -112,19 +115,20 @@ export async function crossrefPollHandler(ctx: Context, data: CreateJob) {
   if (row.status !== DOI_DEPOSIT_STATUS.QUEUED) {
     return complete(data.id, `no-op: deposit ${row.id} is ${row.status}`);
   }
+  const userId = ctx.$config.api.submissionsServiceAccount.id;
   const site = await loadJobSite(prisma, payload.siteId);
   if (!site || site.status !== SITE_DOI_CONFIG_STATUS.ACTIVE) {
-    await failDeposit(prisma, { deposit: row, error: 'site_not_active' });
+    await failDeposit(prisma, { deposit: row, error: 'site_not_active', userId });
     return complete(data.id, `deposit ${row.id}: site is not ACTIVE, attempt failed`);
   }
   const role = site.role ?? crossrefCredentialsFromConfig(ctx.$config).role;
-  const polled = await pollOnce({ ctx, prisma, row, role, jobId: data.id });
+  const polled = await pollOnce({ ctx, prisma, row, role, jobId: data.id, userId });
   if ('done' in polled) {
     return polled.done;
   }
   const { reason, crossrefSubmissionId } = polled.pending;
   if (pastHorizon(row, new Date())) {
-    await failDeposit(prisma, { deposit: row, error: NO_RESULT });
+    await failDeposit(prisma, { deposit: row, error: NO_RESULT, userId });
     return complete(data.id, `deposit ${row.id}: ${NO_RESULT}`);
   }
   const { scheduledAt, rescheduled } = await reschedulePoll({

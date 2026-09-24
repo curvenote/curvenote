@@ -48,7 +48,7 @@ const job = {
   job_type: 'CROSSREF_POLL',
   payload: { depositId: 'dep-1', siteId: 'site-a', attempt: 1 },
 } as any;
-const ctx = { $config: {} } as any;
+const ctx = { $config: { api: { submissionsServiceAccount: { id: 'sa-1' } } } } as any;
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -67,7 +67,6 @@ beforeEach(() => {
           status: 'SUBMITTING',
           submission_id: 'sub-1',
           site_id: 'site-a',
-          created_by_id: 'u1',
         },
       }),
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
