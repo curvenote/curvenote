@@ -210,6 +210,39 @@ describe('site doi resolve — delivered package', () => {
     const dto = await sites.doi(testData.context, registered);
     expect(dto.submission_version_id).toBe(owner.svId);
   });
+
+  test('a submission DOI with no published version is a 404, not another work with that DOI', async () => {
+    const registered = `10.62329/cn-${uuidv7()}`;
+    const owner = await seedPublishedWorkWithDoi(testData, {
+      workDoi: false,
+      submissionDoi: registered,
+    });
+    await unpublish(owner);
+    await seedWorkCarryingDoi(testData, registered, {});
+
+    await expectRejects404(sites.doi(testData.context, registered));
+  });
+
+  test('a submission DOI with no version under the tag is a 404, not another work with that DOI', async () => {
+    const registered = `10.62329/cn-${uuidv7()}`;
+    await seedPublishedWorkWithDoi(testData, { workDoi: false, submissionDoi: registered });
+    await seedWorkCarryingDoi(testData, registered, { svTags: ['hhmi'] });
+
+    await expectRejects404(sites.doi(testData.context, registered, { tag: 'hhmi' }));
+  });
+
+  test('a submission DOI owned on another site is a 404, not this site’s work with that DOI', async () => {
+    const registered = `10.62329/cn-${uuidv7()}`;
+    const otherSiteId = await createBareSite();
+    await seedPublishedWorkWithDoi(testData, {
+      siteId: otherSiteId,
+      workDoi: false,
+      submissionDoi: registered,
+    });
+    await seedWorkCarryingDoi(testData, registered, {});
+
+    await expectRejects404(sites.doi(testData.context, registered));
+  });
 });
 
 describe('sites.submissions.published.get — delivered package', () => {
@@ -397,6 +430,48 @@ describe('cross-site doi resolve — public-only security', () => {
       workDoi: false,
       submissionDoi: registered,
     });
+
+    await expectRejects404(
+      doi.resolve(testData.context, registered),
+      'Not Found - No work with that DOI exists in database',
+    );
+  });
+
+  test('a submission DOI with no published version is a 404, not another work with that DOI', async () => {
+    const registered = `10.62329/cn-${uuidv7()}`;
+    const owner = await seedPublishedWorkWithDoi(testData, {
+      workDoi: false,
+      submissionDoi: registered,
+    });
+    await unpublish(owner);
+    await seedWorkCarryingDoi(testData, registered, {});
+
+    await expectRejects404(
+      doi.resolve(testData.context, registered),
+      'Not Found - No work with that DOI exists in database',
+    );
+  });
+
+  test('a submission DOI with no version under the tag is a 404, not another work with that DOI', async () => {
+    const registered = `10.62329/cn-${uuidv7()}`;
+    await seedPublishedWorkWithDoi(testData, { workDoi: false, submissionDoi: registered });
+    await seedWorkCarryingDoi(testData, registered, { svTags: ['hhmi'] });
+
+    await expectRejects404(
+      doi.resolve(testData.context, registered, { tag: 'hhmi' }),
+      'Not Found - No published submission version with that tag for this DOI on any public site',
+    );
+  });
+
+  test('a submission DOI owned on a private site is a 404, not a public work with that DOI', async () => {
+    const registered = `10.62329/cn-${uuidv7()}`;
+    const privateSiteId = await createBareSite({ private: true });
+    await seedPublishedWorkWithDoi(testData, {
+      siteId: privateSiteId,
+      workDoi: false,
+      submissionDoi: registered,
+    });
+    await seedWorkCarryingDoi(testData, registered, {});
 
     await expectRejects404(
       doi.resolve(testData.context, registered),
@@ -655,6 +730,28 @@ async function seedPublishedWorkWithDoi(
   });
 
   return seed;
+}
+
+/** A published work on the test site whose `Work.doi` and `WorkVersion.doi` are `doiValue`. */
+async function seedWorkCarryingDoi(
+  testData: TestData,
+  doiValue: string,
+  opts: { svTags?: string[] },
+): Promise<DoiSeed> {
+  const seed = await seedPublishedWorkWithDoi(testData, { svTags: opts.svTags });
+  const prisma = await getPrismaClient();
+  await prisma.work.update({ where: { id: seed.workId }, data: { doi: doiValue } });
+  await prisma.workVersion.update({ where: { id: seed.workVersionId }, data: { doi: doiValue } });
+  return seed;
+}
+
+/** Leaves the seeded submission with no published version. */
+async function unpublish(seed: DoiSeed): Promise<void> {
+  const prisma = await getPrismaClient();
+  await prisma.submissionVersion.update({
+    where: { id: seed.svId },
+    data: { status: 'IN_REVIEW' },
+  });
 }
 
 /** Adds a newer published submission version (new work version) to an existing submission. */

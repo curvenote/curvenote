@@ -16,37 +16,55 @@ export type DoiResolveOptions = {
   tag?: string;
 };
 
+type SubmissionVersionMatch = { id: string; siteName: string };
+
+/**
+ * `owned` is true when any submission, on any site, has this DOI. An owned DOI resolves only
+ * through `Submission.doi`: a work carrying the same DOI is a different work.
+ */
+type SubmissionDoiProbe = { owned: false } | { owned: true; match: SubmissionVersionMatch | null };
+
 /**
  * DOIs registered through Curvenote live on `Submission.doi` (btree `Submission_doi_idx`).
  * Probe that first across public, non-external sites; latest published version wins.
+ *
+ * The outer joins keep the owning submission's row when nothing matches, so one query tells
+ * "no owner" (no rows) apart from "owned, but no published version here" (`sv.id` null).
  */
-async function fetchPublishedSubmissionVersionBySubmissionDoi(
+async function probeSubmissionDoi(
   doiNormalized: string,
   tag?: string,
-): Promise<{ id: string; siteName: string } | null> {
+): Promise<SubmissionDoiProbe> {
   const prisma = await getPrismaClient();
   const tagFilter = tag ? Prisma.sql`AND sv.tags @> ARRAY[${tag}]::text[]` : Prisma.empty;
-  const rows = await prisma.$queryRaw<{ id: string; site_name: string }[]>`
+  const rows = await prisma.$queryRaw<{ id: string | null; site_name: string | null }[]>`
     SELECT sv.id, si.name AS site_name
     FROM "Submission" s
-    INNER JOIN "Site" si
+    LEFT JOIN "Site" si
       ON si.id = s.site_id
      AND si.private = false
      AND si.external = false
-    INNER JOIN "SubmissionVersion" sv
+    LEFT JOIN "SubmissionVersion" sv
       ON sv.submission_id = s.id
+     AND si.id IS NOT NULL
      AND sv.status = ${'PUBLISHED'}
      ${tagFilter}
     WHERE s.doi = ${doiNormalized}
-    ORDER BY sv.date_created DESC
+    ORDER BY sv.date_created DESC NULLS LAST
     LIMIT 1
   `;
   const row = rows[0];
-  return row ? { id: row.id, siteName: row.site_name } : null;
+  if (!row) {
+    return { owned: false };
+  }
+  return {
+    owned: true,
+    match: row.id && row.site_name ? { id: row.id, siteName: row.site_name } : null,
+  };
 }
 
 /**
- * Fallback for DOIs a work arrived with (`WorkVersion.doi` / `Work.doi`), used when no
+ * Fallback for DOIs a work arrived with (`WorkVersion.doi` / `Work.doi`), used only when no
  * submission owns the DOI.
  *
  * Mirrors the single-site resolver (`fetchPublishedSubmissionVersionIdByDoi` in
@@ -132,9 +150,10 @@ export default async function (
   if (!doiNormalized) throw error404('Not Found - Invalid DOI');
 
   const tag = opts?.tag?.trim();
-  const match =
-    (await fetchPublishedSubmissionVersionBySubmissionDoi(doiNormalized, tag)) ??
-    (await fetchPublishedSubmissionVersionAcrossPublicSites(doiNormalized, tag));
+  const probe = await probeSubmissionDoi(doiNormalized, tag);
+  const match = probe.owned
+    ? probe.match
+    : await fetchPublishedSubmissionVersionAcrossPublicSites(doiNormalized, tag);
   if (!match) {
     throw error404(
       tag
@@ -144,9 +163,9 @@ export default async function (
   }
 
   // The site load and the full submission-version row both depend only on the
-  // match above and not on each other, so run them concurrently: a registered
-  // DOI costs two serial round-trips (the submission-DOI probe, then this
-  // pair); a work DOI or a miss costs three (submission-DOI probe, work-DOI
+  // match above and not on each other, so run them concurrently: a DOI a
+  // submission owns costs two serial round-trips (the submission-DOI probe,
+  // then this pair); a work DOI costs three (submission-DOI probe, work-DOI
   // query, then this pair).
   const prisma = await getPrismaClient();
   const [site, sv] = await Promise.all([
