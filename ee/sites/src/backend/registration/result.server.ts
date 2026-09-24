@@ -3,6 +3,7 @@ import type { ParsedDepositResult } from '../crossref/depositResult.server.js';
 import type { DoiDeps, DoiTx } from '../doi/types.js';
 import { writeRegistrationActivity } from './activity.server.js';
 import { CROSSREF_REJECTED } from './failure.js';
+import type { DoiFailureCode } from './failure.js';
 
 type DepositRow = {
   id: string;
@@ -107,7 +108,7 @@ function messagesOf(result: Completed, status: Completed['outcome']) {
  * because a failure can land long after the Register click, when the user who started the
  * registration may no longer exist.
  */
-type FailDepositInput = { deposit: DepositRow; error: string; userId: string };
+type FailDepositInput = { deposit: DepositRow; error: DoiFailureCode; userId: string };
 
 /** Attempt and registration fail with `error`; the site is untouched. */
 export async function failDeposit(prisma: DoiDeps['prisma'], input: FailDepositInput) {

@@ -6,6 +6,22 @@
 /** Stored when Crossref rejected a deposit without saying why. */
 export const CROSSREF_REJECTED = 'crossref_rejected';
 
+/**
+ * Every code our jobs write to `DoiDeposit.error`, as opposed to Crossref's own rejection message
+ * (a free-form string `describeDoiFailure` also has to accept). Typing `failDeposit`'s input on
+ * this union turns a missing or misspelled code into a `tsc` error instead of a silent "Crossref
+ * rejected the metadata" for our own internal failure.
+ */
+export type DoiFailureCode =
+  | typeof CROSSREF_REJECTED
+  | 'site_credentials_rejected'
+  | 'site_not_active'
+  | 'internal_error'
+  | 'dispatch_failed'
+  | 'deposit_not_received'
+  | 'no_deposit_after_72h'
+  | 'no_result_after_72h';
+
 export type DoiFailureReason = {
   summary: string;
   /** Crossref's own words, shown folded: they are schema errors a site admin rarely needs. */
@@ -19,10 +35,10 @@ const NO_ANSWER =
 
 /**
  * `DoiDeposit.error` holds either a code our jobs wrote or, for a rejection, Crossref's message.
- * Codes never reach the page: an unknown code would read as Crossref's message, so every code a
- * job writes is listed here.
+ * Codes never reach the page: an unknown code would read as Crossref's message, so `Record` over
+ * `DoiFailureCode` makes a code missing its entry a `tsc` error rather than a silent fallback.
  */
-const BY_CODE: Record<string, DoiFailureReason> = {
+const BY_CODE: Record<DoiFailureCode, DoiFailureReason> = {
   [CROSSREF_REJECTED]: { summary: REJECTED },
   site_credentials_rejected: {
     summary:
@@ -36,9 +52,13 @@ const BY_CODE: Record<string, DoiFailureReason> = {
   deposit_not_received: { summary: NOT_SUBMITTED },
 };
 
+/** Looked up by an arbitrary stored string, not just a known `DoiFailureCode`: Crossref's own
+ * rejection messages land here too, and must miss the lookup rather than index into it. */
+const lookup = BY_CODE as Partial<Record<string, DoiFailureReason>>;
+
 export function describeDoiFailure(error: string | null): DoiFailureReason {
   if (!error) {
     return { summary: NOT_SUBMITTED };
   }
-  return BY_CODE[error] ?? { summary: REJECTED, detail: error };
+  return lookup[error] ?? { summary: REJECTED, detail: error };
 }
