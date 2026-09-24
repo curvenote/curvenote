@@ -1,5 +1,6 @@
 import type { TagDTO } from '@curvenote/common';
 import type { WorkflowTransition } from '@curvenote/scms-core';
+import type { DoiReadiness } from '../../backend/deposit/readiness.server.js';
 import type { DoiFailureReason } from '../../backend/registration/failure.js';
 import type { SiteLayoutSite } from '../$siteName/layout.format.server.js';
 
@@ -135,6 +136,14 @@ export type DoiRegistrationView =
     }
   | { status: 'FAILED'; doi: string; reason: DoiFailureReason }
   | { status: 'REGISTERED'; doi: string; warning?: string };
+
+/** What the DOI row shows. The loader picks exactly one, so the row never weighs one against another. */
+export type DoiRowState =
+  | { kind: 'registration'; registration: DoiRegistrationView }
+  | { kind: 'doi'; doi: string }
+  /** Streamed, not awaited: the readiness check reads the CDN. */
+  | { kind: 'register'; readiness: Promise<DoiReadiness> }
+  | { kind: 'none' };
 
 export type MagicLinkWithAccessCount = {
   id: string;

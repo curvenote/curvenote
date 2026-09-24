@@ -4,7 +4,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const server = vi.hoisted(() => ({ prisma: { doiRegistration: { findFirst: vi.fn() } } }));
 vi.mock('@curvenote/scms-server', () => ({ getPrismaClient: async () => server.prisma }));
 
-import { loadDoiRegistrationView } from './doiRegistration.server.js';
+import { doiRowState, loadDoiRegistrationView } from './doiRegistration.server.js';
+import type { DoiRegistrationView } from './types.js';
 
 type Attempt = { status: string; error: string | null; warning: string | null };
 
@@ -108,5 +109,54 @@ describe('loadDoiRegistrationView', () => {
   it('treats a legacy DRAFT row as no registration', async () => {
     server.prisma.doiRegistration.findFirst.mockResolvedValue(registration('DRAFT', []));
     expect(await loadDoiRegistrationView('site-a', 'sub-1')).toBeNull();
+  });
+});
+
+describe('doiRowState', () => {
+  const workDoi = '10.5555/abc';
+  const failed: DoiRegistrationView = { status: 'FAILED', doi: 'd', reason: { summary: 'x' } };
+  const registered: DoiRegistrationView = { status: 'REGISTERED', doi: 'd', warning: 'w' };
+  const startReadiness = vi.fn(() => Promise.resolve({ ready: true } as never));
+
+  it('shows the registration, even when a DOI resolves, so a warning is not lost', () => {
+    expect(doiRowState({ doi: 'd', registration: registered, startReadiness })).toEqual({
+      kind: 'registration',
+      registration: registered,
+    });
+    expect(startReadiness).not.toHaveBeenCalled();
+  });
+
+  it("shows the work's own DOI instead of a failed registration, whose Retry would be refused", () => {
+    expect(doiRowState({ doi: workDoi, registration: failed, startReadiness })).toEqual({
+      kind: 'doi',
+      doi: workDoi,
+    });
+  });
+
+  it('shows a failed registration when no DOI resolves', () => {
+    expect(doiRowState({ doi: undefined, registration: failed, startReadiness })).toEqual({
+      kind: 'registration',
+      registration: failed,
+    });
+  });
+
+  it('shows the DOI without starting the readiness check', () => {
+    expect(doiRowState({ doi: workDoi, registration: null, startReadiness })).toEqual({
+      kind: 'doi',
+      doi: workDoi,
+    });
+    expect(startReadiness).not.toHaveBeenCalled();
+  });
+
+  it('offers Register, with the readiness check started, when there is nothing to show yet', () => {
+    const state = doiRowState({ doi: undefined, registration: null, startReadiness });
+    expect(state.kind).toBe('register');
+    expect(startReadiness).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows nothing to a viewer who cannot see DOI registration', () => {
+    expect(doiRowState({ doi: undefined, registration: null, startReadiness: null })).toEqual({
+      kind: 'none',
+    });
   });
 });

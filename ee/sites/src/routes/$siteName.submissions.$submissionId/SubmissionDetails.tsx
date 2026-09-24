@@ -115,8 +115,7 @@ export function SubmissionDetails({ baseUrl }: SubmissionDetailsProps) {
     slugs,
     collections,
     workflow,
-    doiReadiness,
-    doiRegistration,
+    doiRow,
     canRegisterDoi,
   } = useLoaderData<SubmissionDetailPageData>();
 
@@ -133,7 +132,6 @@ export function SubmissionDetails({ baseUrl }: SubmissionDetailsProps) {
     : undefined;
   const datePublished = submission.date_published;
 
-  const doi = activeVersion.site_work.doi;
   // Same public URL as the published-version banner.
   const doiResolvesTo = `${baseUrl}/articles/${submission.slug ?? (published ?? activeVersion).site_work.id}`;
 
@@ -231,9 +229,7 @@ export function SubmissionDetails({ baseUrl }: SubmissionDetailsProps) {
 
         <DetailRow label="DOI">
           <DoiRow
-            doi={doi}
-            registration={doiRegistration}
-            readiness={doiReadiness}
+            state={doiRow}
             canRegister={canRegisterDoi}
             resolvesTo={doiResolvesTo}
             setupUrl={doiSetupUrl}

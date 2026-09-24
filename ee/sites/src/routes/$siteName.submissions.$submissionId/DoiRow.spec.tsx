@@ -19,53 +19,39 @@ vi.mock('./doiRowRefresh.js', async () => {
 });
 
 import { DoiRow } from './DoiRow.js';
-import type { DoiRegistrationView } from './types.js';
+import type { DoiRowState } from './types.js';
 
 const doi = '10.62329/abcd1234';
 
-type RenderProps = {
-  doi?: string;
-  registration: DoiRegistrationView | null;
-};
-
-function render({ doi: workDoi, registration }: RenderProps) {
+function render(state: DoiRowState) {
   return renderToStaticMarkup(
     <DoiRow
-      doi={workDoi}
-      registration={registration}
-      readiness={null}
+      state={state}
       canRegister
       resolvesTo="the work"
       statusUrl="/status"
-      empty={null}
+      empty={<span>empty</span>}
     />,
   );
 }
 
 describe('DoiRow', () => {
-  it('shows the REGISTERED warning even when the work also resolves to a doi', () => {
+  it('shows the registration state it is given', () => {
     const html = render({
-      doi,
+      kind: 'registration',
       registration: { status: 'REGISTERED', doi, warning: 'Added with conflict' },
     });
     expect(html).toContain('Registered with a warning');
     expect(html).toContain(`href="https://doi.org/${doi}"`);
   });
 
-  it('shows the work’s own doi instead of the failed state when one is set', () => {
-    const html = render({
-      doi,
-      registration: { status: 'FAILED', doi, reason: { summary: 'x' } },
-    });
+  it('shows a DOI as a link', () => {
+    const html = render({ kind: 'doi', doi });
     expect(html).toContain(`href="https://doi.org/${doi}"`);
-    expect(html).not.toContain('Registration unsuccessful');
     expect(html).not.toContain('Retry');
   });
 
-  it('shows the failed state when no doi resolves', () => {
-    const html = render({
-      registration: { status: 'FAILED', doi, reason: { summary: 'x' } },
-    });
-    expect(html).toContain('Registration unsuccessful');
+  it('shows the empty value when there is nothing to show', () => {
+    expect(render({ kind: 'none' })).toBe('<span>empty</span>');
   });
 });

@@ -3,20 +3,17 @@ import type { ReactNode } from 'react';
 import { useFetcher } from 'react-router';
 import type { FetcherWithComponents } from 'react-router';
 import { ui } from '@curvenote/scms-core';
-import type { DoiReadiness } from '../../backend/deposit/readiness.server.js';
 import type { RegisterDoiActionData } from './doi.server.js';
 import { DoiLink } from './DoiLink.js';
 import { DoiRegistrationState } from './DoiRegistrationState.js';
 import { doiRowRefreshKey, useDoiRowRefresh } from './doiRowRefresh.js';
 import { RegisterDoi } from './RegisterDoi.js';
-import type { DoiRegistrationView } from './types.js';
+import type { DoiRowState } from './types.js';
 
 export type RegisterDoiFetcher = FetcherWithComponents<RegisterDoiActionData>;
 
 type DoiRowProps = {
-  doi?: string;
-  registration: DoiRegistrationView | null;
-  readiness: Promise<DoiReadiness> | null;
+  state: DoiRowState;
   /** site.doi.register + the DOI feature flag. */
   canRegister: boolean;
   resolvesTo: string;
@@ -31,16 +28,17 @@ type DoiRowProps = {
  * from the dialog to the registration state when the loader revalidates after a successful Register.
  */
 export function DoiRow({
-  doi,
-  registration,
-  readiness,
+  state,
   canRegister,
   resolvesTo,
   setupUrl,
   statusUrl,
   empty,
 }: DoiRowProps) {
-  useDoiRowRefresh(statusUrl, doiRowRefreshKey(registration));
+  useDoiRowRefresh(
+    statusUrl,
+    doiRowRefreshKey(state.kind === 'registration' ? state.registration : null),
+  );
   const fetcher = useFetcher<RegisterDoiActionData>();
   useEffect(() => {
     if (fetcher.state !== 'idle' || !fetcher.data) {
@@ -53,33 +51,28 @@ export function DoiRow({
     }
   }, [fetcher.state, fetcher.data]);
 
-  // A later version can arrive with its own DOI after a registration failed; that DOI, not the
-  // failed state, is what the rest of the page, the list and the API already show.
-  if (registration?.status === 'FAILED' && doi) {
-    return <DoiLink doi={doi} />;
+  switch (state.kind) {
+    case 'registration':
+      return (
+        <DoiRegistrationState
+          registration={state.registration}
+          canRegister={canRegister}
+          fetcher={fetcher}
+        />
+      );
+    case 'doi':
+      return <DoiLink doi={state.doi} />;
+    case 'register':
+      return (
+        <RegisterDoi
+          readiness={state.readiness}
+          resolvesTo={resolvesTo}
+          setupUrl={setupUrl}
+          canRegister={canRegister}
+          fetcher={fetcher}
+        />
+      );
+    case 'none':
+      return <>{empty}</>;
   }
-  if (registration) {
-    return (
-      <DoiRegistrationState
-        registration={registration}
-        canRegister={canRegister}
-        fetcher={fetcher}
-      />
-    );
-  }
-  if (doi) {
-    return <DoiLink doi={doi} />;
-  }
-  if (readiness) {
-    return (
-      <RegisterDoi
-        readiness={readiness}
-        resolvesTo={resolvesTo}
-        setupUrl={setupUrl}
-        canRegister={canRegister}
-        fetcher={fetcher}
-      />
-    );
-  }
-  return <>{empty}</>;
 }
