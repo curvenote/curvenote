@@ -43,6 +43,20 @@ describe('DoiEligibleKindsCard', () => {
     expect(html).toContain('name="intent" value="update-kind-mapping"');
   });
 
+  it('lays the kinds out under Submission Kind and DOI content type columns', () => {
+    const html = render([
+      { id: 'kind-article', title: 'Article', doiContentType: null, locked: false },
+    ]);
+    expect(html).toContain(
+      'Choose which enabled Submission Kinds can receive DOIs and how they should be registered.',
+    );
+    expect(html).toContain('Submission Kind</div>');
+    expect(html).toContain('DOI content type</div>');
+    expect(html).toContain(
+      'Newly enabled Submission Kinds will automatically appear here for review.',
+    );
+  });
+
   it('locks a kind with live DOIs and says why', () => {
     const html = render([
       { id: 'kind-blog', title: 'Blog', doiContentType: 'PREPRINT', locked: true },
