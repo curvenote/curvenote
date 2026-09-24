@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import type { FetcherWithComponents } from 'react-router';
 import { Link, useFetcher } from 'react-router';
 import { Info } from 'lucide-react';
-import { DOI_CONTENT_TYPE, cn, ui } from '@curvenote/scms-core';
+import { DOI_CONTENT_TYPE, cn, isDoiContentType, ui } from '@curvenote/scms-core';
+import type { DoiContentType } from '@curvenote/scms-core';
 import type { EligibleKindDTO, SiteDoiConfigDTO } from '../../backend/doi/types.js';
 import { DOI_CONTENT_TYPE_LABELS } from './doi.utils.js';
 import type { DoiActionData } from './doi.utils.js';
@@ -15,10 +16,10 @@ const LOCKED_REASON =
 
 type EligibleKindRowProps = {
   kind: EligibleKindDTO;
-  value: string | null;
+  value: DoiContentType | null;
   busy: boolean;
   onEligibleChange: (eligible: boolean) => void;
-  onContentTypeChange: (value: string) => void;
+  onContentTypeChange: (value: DoiContentType) => void;
 };
 
 function EligibleKindRow({
@@ -56,7 +57,11 @@ function EligibleKindRow({
         </div>
         <ui.Select
           value={value ?? ''}
-          onValueChange={onContentTypeChange}
+          onValueChange={(next) => {
+            if (isDoiContentType(next)) {
+              onContentTypeChange(next);
+            }
+          }}
           disabled={disabled || !eligible}
         >
           <ui.SelectTrigger className="w-full" aria-label={`DOI content type for ${kind.title}`}>

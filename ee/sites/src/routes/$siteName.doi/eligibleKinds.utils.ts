@@ -1,8 +1,9 @@
 import { DOI_CONTENT_TYPE } from '@curvenote/scms-core';
+import type { DoiContentType } from '@curvenote/scms-core';
 import type { EligibleKindDTO } from '../../backend/doi/types.js';
 
 /** Kind id -> the DOI content type the form will save; null is not eligible. */
-export type KindMappingDraft = Record<string, string | null>;
+export type KindMappingDraft = Record<string, DoiContentType | null>;
 
 export function draftFromKinds(kinds: EligibleKindDTO[]): KindMappingDraft {
   return Object.fromEntries(kinds.map((kind) => [kind.id, kind.doiContentType]));

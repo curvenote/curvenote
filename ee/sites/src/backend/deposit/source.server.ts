@@ -1,5 +1,5 @@
 import { getCdnBaseUrl, getCdnLocation, getConfig, getPage } from '@curvenote/cdn';
-import { ensureTrailingSlash } from '@curvenote/scms-core';
+import { ensureTrailingSlash, isDoiContentType } from '@curvenote/scms-core';
 import type { Context } from '@curvenote/scms-server';
 import { getPrismaClient, getSignedCDNQuery } from '@curvenote/scms-server';
 import { extractPart } from 'myst-common';
@@ -104,7 +104,9 @@ export async function loadDepositSource(
     siteId: row.submission.site_id,
     kind: {
       title: kindTitle(row.submission.kind),
-      doiContentType: row.submission.kind.doi_content_type,
+      doiContentType: isDoiContentType(row.submission.kind.doi_content_type)
+        ? row.submission.kind.doi_content_type
+        : null,
     },
     doiConfig: row.submission.site.doiConfig,
     dates: {

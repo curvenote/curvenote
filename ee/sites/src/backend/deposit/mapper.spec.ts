@@ -2,18 +2,8 @@
 import { describe, expect, it } from 'vitest';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { toXml } from 'xast-util-to-xml';
-import { depositTypeForKind, toDeposit } from './mapper.js';
+import { toDeposit } from './mapper.js';
 import { lapalmaOptions, lapalmaSource } from './fixtures/source.lapalma.js';
-
-describe('depositTypeForKind', () => {
-  it('deposits a preprint kind as posted_content of type preprint', () => {
-    expect(depositTypeForKind('PREPRINT')).toEqual({ element: 'posted_content', type: 'preprint' });
-  });
-
-  it.each([[null], ['JOURNAL_ARTICLE'], ['toString']])('treats %s as not eligible', (value) => {
-    expect(depositTypeForKind(value)).toBeNull();
-  });
-});
 
 describe('toDeposit', () => {
   it('blocks a kind that cannot receive DOIs, naming it', () => {

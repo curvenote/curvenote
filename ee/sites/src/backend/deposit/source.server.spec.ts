@@ -124,6 +124,18 @@ describe('loadDepositSource', () => {
     expect(source.abstractMdast).toEqual({ type: 'root', children: [] });
   });
 
+  it('reads a DOI content type Curvenote does not have as not eligible', async () => {
+    server.prisma.submissionVersion.findUnique.mockResolvedValue({
+      ...row(),
+      submission: {
+        ...row().submission,
+        kind: { name: 'Article', content: {}, doi_content_type: 'JOURNAL_ARTICLE' },
+      },
+    });
+    const source = await loadDepositSource(ctx, 'sv-1');
+    expect(source.kind).toEqual({ title: 'Article', doiContentType: null });
+  });
+
   it('keeps the CDN licence when metadata.license is a bare string', async () => {
     server.prisma.submissionVersion.findUnique.mockResolvedValue({
       ...row(),

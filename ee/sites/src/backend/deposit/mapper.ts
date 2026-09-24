@@ -1,7 +1,6 @@
 import { abstractFromMdast } from 'crossref-utils-sdk';
 import type { Preprint } from 'crossref-utils-sdk';
-import { DOI_CONTENT_TYPE, SITE_DOI_CONFIG_STATUS } from '@curvenote/scms-core';
-import type { DoiContentType } from '@curvenote/scms-core';
+import { SITE_DOI_CONFIG_STATUS } from '@curvenote/scms-core';
 import { contributorsFromFrontmatter } from './authors.js';
 import type {
   DepositIssue,
@@ -10,27 +9,6 @@ import type {
   DepositSummary,
   MappedDeposit,
 } from './types.js';
-
-/** A Crossref record type: the XML element, and its `type` attribute where it has one. */
-export type CrossrefDepositType = { element: 'posted_content'; type: 'preprint' };
-
-/**
- * Curvenote's DOI content types in Crossref's terms. `preprintXml` writes no `type` attribute:
- * `preprint` is the schema default for posted_content.
- */
-const CROSSREF_DEPOSIT_TYPES = new Map<string, CrossrefDepositType>(
-  Object.entries({
-    [DOI_CONTENT_TYPE.PREPRINT]: { element: 'posted_content', type: 'preprint' },
-  } satisfies Record<DoiContentType, CrossrefDepositType>),
-);
-
-/** What a kind's DOIs are deposited as. Null when it cannot receive DOIs, or the value is unknown. */
-export function depositTypeForKind(doiContentType: string | null): CrossrefDepositType | null {
-  if (doiContentType === null) {
-    return null;
-  }
-  return CROSSREF_DEPOSIT_TYPES.get(doiContentType) ?? null;
-}
 
 export function kindNotEligibleMessage(kindTitle: string): string {
   return `Submissions of kind "${kindTitle}" can't receive DOIs. A site admin can enable it in DOI Registration.`;
@@ -80,7 +58,7 @@ export function toDeposit(source: DepositSource, opts: DepositOptions): MappedDe
   if (!source.doiConfig || source.doiConfig.status !== SITE_DOI_CONFIG_STATUS.ACTIVE) {
     issues.push(blocking('site_not_active', 'The site is not set up for DOI registration.'));
   }
-  if (!depositTypeForKind(source.kind.doiContentType)) {
+  if (source.kind.doiContentType === null) {
     issues.push(blocking('kind_not_eligible', kindNotEligibleMessage(source.kind.title)));
   }
   const title = source.frontmatter.title?.trim();

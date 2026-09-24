@@ -28,3 +28,11 @@ export const DOI_CONTENT_TYPE = {
 } as const;
 
 export type DoiContentType = (typeof DOI_CONTENT_TYPE)[keyof typeof DOI_CONTENT_TYPE];
+
+/**
+ * Narrows a stored `doi_content_type`. Anything else, such as a value this build does not know,
+ * reads as not eligible.
+ */
+export function isDoiContentType(value: unknown): value is DoiContentType {
+  return (Object.values(DOI_CONTENT_TYPE) as unknown[]).includes(value);
+}

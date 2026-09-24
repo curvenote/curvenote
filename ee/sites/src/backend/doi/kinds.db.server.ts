@@ -1,3 +1,4 @@
+import { isDoiContentType } from '@curvenote/scms-core';
 import type { DoiContentType } from '@curvenote/scms-core';
 import { kindTitle } from '../kinds.utils.js';
 import { LIVE_REGISTRATION_STATUSES } from './db.server.js';
@@ -70,7 +71,7 @@ export async function dbListKindMappings(
   return kinds.map((kind) => ({
     id: kind.id,
     title: kindTitle(kind),
-    doiContentType: kind.doi_content_type,
+    doiContentType: isDoiContentType(kind.doi_content_type) ? kind.doi_content_type : null,
     locked: locked.has(kind.id),
   }));
 }

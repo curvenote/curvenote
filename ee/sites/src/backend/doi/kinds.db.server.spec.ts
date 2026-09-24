@@ -9,6 +9,17 @@ vi.mock('@curvenote/scms-db', () => ({
 }));
 
 describe('dbListKindMappings', () => {
+  test('shows a DOI content type Curvenote does not have as not eligible', async () => {
+    const { deps, prisma } = makeDeps();
+    prisma.submissionKind.findMany.mockResolvedValue([
+      { id: 'kind-news', name: 'News', content: {}, doi_content_type: 'JOURNAL_ARTICLE' },
+    ]);
+
+    expect(await dbListKindMappings(deps.prisma, 'site-a')).toEqual([
+      { id: 'kind-news', title: 'News', doiContentType: null, locked: false },
+    ]);
+  });
+
   test('lists every kind of the site with its title, content type and lock', async () => {
     const { deps, prisma } = makeDeps();
     prisma.submissionKind.findMany.mockResolvedValue([

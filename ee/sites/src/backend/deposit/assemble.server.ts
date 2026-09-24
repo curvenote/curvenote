@@ -53,6 +53,8 @@ export async function assembleDeposit(
   if (!mapped.preprint) {
     return { issues: mapped.issues, doi: opts.doi };
   }
+  // PREPRINT is the only DOI content type, and Crossref's posted_content. preprintXml writes no
+  // `type` attribute: `preprint` is the schema default for posted_content.
   const xml = new DoiBatch(mapped.batch, preprintXml(mapped.preprint)).toXml();
   return { xml, summary: mapped.summary, issues: mapped.issues, doi: opts.doi };
 }

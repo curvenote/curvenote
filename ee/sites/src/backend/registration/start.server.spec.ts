@@ -424,6 +424,15 @@ describe('startRegistration: kind eligibility', () => {
     );
   });
 
+  it('refuses a DOI content type Curvenote does not have', async () => {
+    p.submission.findUnique.mockResolvedValue({
+      kind: { name: 'Blog', content: {}, doi_content_type: 'JOURNAL_ARTICLE' },
+    });
+
+    expect(await run()).toEqual({ ok: false, status: 409, error: notEligible });
+    expectNothingCreated();
+  });
+
   it('answers a Retry on an ineligible kind with the not-eligible issue, writing nothing', async () => {
     existing('FAILED');
     mocks.assembleDeposit.mockResolvedValue({
