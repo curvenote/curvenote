@@ -165,14 +165,18 @@ describe('startRegistration: reads', () => {
   ])('refuses with 409 when the work already has a DOI (%s)', async (_, submission) => {
     p.submission.findFirst.mockResolvedValue({ id: 'sub-1', ...submission });
 
-    expect(await run()).toEqual({ ok: false, status: 409, error: 'This work already has a DOI.' });
+    expect(await run()).toEqual({
+      ok: false,
+      status: 409,
+      error: 'This submission already has a DOI.',
+    });
     expect(mocks.assembleDeposit).not.toHaveBeenCalled();
     expectNothingWritten();
   });
 
   it.each([
     ['SUBMITTING', 'A registration is already in progress.'],
-    ['REGISTERED', 'This submission already has a registered DOI.'],
+    ['REGISTERED', 'This submission already has a DOI.'],
   ])('refuses %s without bumping occ', async (status, error) => {
     existing(status);
 

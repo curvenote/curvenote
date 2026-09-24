@@ -66,8 +66,10 @@ async function loadStart(
   if (existing?.status === DOI_REGISTRATION_STATUS.SUBMITTING) {
     return errors.IN_PROGRESS;
   }
+  // A registered row normally also has submission.doi set, so HAS_DOI above answers first. Without
+  // this check the retry path would store XML and bump the site's occ only to refuse as IN_PROGRESS.
   if (existing?.status === DOI_REGISTRATION_STATUS.REGISTERED) {
-    return errors.ALREADY;
+    return errors.HAS_DOI;
   }
   const site = await deps.prisma.siteDoiConfig.findUnique({
     where: { site_id: input.siteId },

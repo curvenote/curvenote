@@ -13,9 +13,8 @@ function failure(status: RegistrationFailure['status'], error: string): Registra
 
 export const NOT_FOUND = failure(404, 'Submission not found.');
 export const NOT_PUBLISHED = failure(409, 'Publish this submission to register a DOI.');
-export const HAS_DOI = failure(409, 'This work already has a DOI.');
+export const HAS_DOI = failure(409, 'This submission already has a DOI.');
 export const NOT_ACTIVE = failure(409, 'The site is not set up for DOI registration.');
 export const IN_PROGRESS = failure(409, 'A registration is already in progress.');
-export const ALREADY = failure(409, 'This submission already has a registered DOI.');
 export const PREFIX_CHANGED = failure(409, "The site's DOI prefix changed. Try again.");
 export const NOT_QUEUED = failure(503, 'The DOI registration could not be queued. Try again.');
