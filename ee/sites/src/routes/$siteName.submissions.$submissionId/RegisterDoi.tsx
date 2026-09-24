@@ -44,6 +44,21 @@ function Blockers({ issues, setupUrl }: BlockersProps) {
       </Blocker>
     );
   }
+  if (blockers.kind === 'kind_not_eligible') {
+    return (
+      <Blocker>
+        {blockers.sentence}
+        {setupUrl && (
+          <>
+            {' '}
+            <Link to={setupUrl} className="text-primary hover:underline">
+              Open DOI Registration
+            </Link>
+          </>
+        )}
+      </Blocker>
+    );
+  }
   return (
     <div className="space-y-2">
       {blockers.sentences.map((sentence) => (

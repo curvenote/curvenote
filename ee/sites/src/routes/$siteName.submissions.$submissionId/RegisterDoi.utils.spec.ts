@@ -8,6 +8,24 @@ function issue(code: string, message = `${code} message`): DepositIssue {
 }
 
 describe('describeDoiBlockers', () => {
+  it('shows only the not-eligible sentence when the kind cannot receive DOIs', () => {
+    expect(
+      describeDoiBlockers([
+        issue('missing_title'),
+        issue('kind_not_eligible', 'Submissions of kind "Blog" can\'t receive DOIs.'),
+      ]),
+    ).toEqual({
+      kind: 'kind_not_eligible',
+      sentence: 'Submissions of kind "Blog" can\'t receive DOIs.',
+    });
+  });
+
+  it('asks for site setup before kind eligibility', () => {
+    expect(describeDoiBlockers([issue('kind_not_eligible'), issue('site_not_active')])).toEqual({
+      kind: 'site_not_active',
+    });
+  });
+
   it('shows only the site setup when the site is not active', () => {
     expect(
       describeDoiBlockers([

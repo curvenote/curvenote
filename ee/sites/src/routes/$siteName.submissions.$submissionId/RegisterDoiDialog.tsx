@@ -123,7 +123,7 @@ export function RegisterDoiDialog({
                 ? 'None'
                 : authorList.format(summary.authors.map((author) => author.name))}
             </DetailRow>
-            {/* Every kind is deposited as posted_content (depositTypeForKind). */}
+            {/* Preprint is the only DOI content type a kind can be eligible with. */}
             <DetailRow label="Content type">Preprint</DetailRow>
             <DetailRow label="Publication date">{formatPublicationDate(summary.date)}</DetailRow>
             <DetailRow label="Registration agency">Crossref</DetailRow>
