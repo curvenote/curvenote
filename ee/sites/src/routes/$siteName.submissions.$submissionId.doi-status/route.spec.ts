@@ -37,7 +37,7 @@ describe('doi-status loader', () => {
       phase: 'waiting',
       retried: false,
     });
-    expect(await body(await loader(args()))).toEqual({ key: 'SUBMITTING:waiting' });
+    expect(await body(await loader(args()))).toEqual({ key: 'waiting' });
     expect(mocks.loadDoiRegistrationView).toHaveBeenCalledWith('site-a', 'sub-1');
     // A JSON poller can't follow a redirect and parse it as JSON, so a scope refusal must be a
     // hard status, not withAppSiteContext's page-navigation default.

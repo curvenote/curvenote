@@ -19,10 +19,10 @@ const doi = 'd';
 describe('doiRowRefreshKey', () => {
   it('has a key only while the registration is in progress, one per phase', () => {
     expect(doiRowRefreshKey({ status: 'SUBMITTING', doi, phase: 'sending', retried: false })).toBe(
-      'SUBMITTING:sending',
+      'sending',
     );
     expect(doiRowRefreshKey({ status: 'SUBMITTING', doi, phase: 'waiting', retried: true })).toBe(
-      'SUBMITTING:waiting',
+      'waiting',
     );
   });
 
@@ -54,22 +54,22 @@ describe('useDoiRowRefresh', () => {
 
   it('is disabled without a key and enabled once a key is set', () => {
     expect(renderHook(null).enabled).toBe(false);
-    expect(renderHook('SUBMITTING:waiting').enabled).toBe(true);
+    expect(renderHook('waiting').enabled).toBe(true);
   });
 
   it('rides out a bounded run of failed status checks instead of freezing on the first one', () => {
-    const { numRetries } = renderHook('SUBMITTING:waiting');
+    const { numRetries } = renderHook('waiting');
     expect(numRetries).toBe(30);
   });
 
   it('stops only once the server reports a different key', () => {
-    const { shouldStop } = renderHook('SUBMITTING:waiting');
-    expect(shouldStop({ key: 'SUBMITTING:waiting' })).toBe(false);
-    expect(shouldStop({ key: 'SUBMITTING:sending' })).toBe(true);
+    const { shouldStop } = renderHook('waiting');
+    expect(shouldStop({ key: 'waiting' })).toBe(false);
+    expect(shouldStop({ key: 'sending' })).toBe(true);
   });
 
   it('revalidates the page once the key changes', () => {
-    const { onComplete } = renderHook('SUBMITTING:waiting');
+    const { onComplete } = renderHook('waiting');
     onComplete({ key: null });
     expect(mocks.revalidate).toHaveBeenCalledTimes(1);
   });

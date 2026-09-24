@@ -5,10 +5,7 @@ import type { DoiRegistrationView } from './types.js';
 
 /** Changes whenever the DOI row would show something else; null when nothing can change on its own. */
 export function doiRowRefreshKey(view: DoiRegistrationView | null): string | null {
-  if (view?.status !== 'SUBMITTING') {
-    return null;
-  }
-  return `${view.status}:${view.phase}`;
+  return view?.status === 'SUBMITTING' ? view.phase : null;
 }
 
 export type DoiStatusResponse = { key: string | null };
