@@ -48,7 +48,8 @@ export async function deposit(
   if (resp.status === 401) {
     return { state: 'unauthorized' };
   }
-  // An empty or malformed POST also gets a 200, with a blank body.
+  // An empty POST also gets a 200, with a blank body, so 200 alone does not mean received.
+  // The error keeps that 200: the same request gets the same answer, so it is not one to retry.
   if (!/\bSUCCESS\b/.test(await crossrefText(resp, LABEL))) {
     throw new CrossrefError(`${LABEL} was not received`, resp.status);
   }
