@@ -47,8 +47,9 @@ model DoiRegistration {
   /// DRAFT | SUBMITTING | REGISTERED | FAILED (constants in scms-core)
   status        String       @default("DRAFT")
   registered_at String?
-  created_by    User         @relation(fields: [created_by_id], references: [id])
-  created_by_id String
+  /// Who started it. Null once that user is deleted: the registration outlives them.
+  created_by    User?        @relation(fields: [created_by_id], references: [id], onDelete: SetNull)
+  created_by_id String?
   attempts      DoiDeposit[]
   occ           Int          @default(0)
 

@@ -24,7 +24,7 @@ CREATE TABLE "DoiRegistration" (
     "prefix" TEXT NOT NULL,
     "status" TEXT NOT NULL DEFAULT 'DRAFT',
     "registered_at" TEXT,
-    "created_by_id" TEXT NOT NULL,
+    "created_by_id" TEXT,
     "occ" INTEGER NOT NULL DEFAULT 0,
 
     CONSTRAINT "DoiRegistration_pkey" PRIMARY KEY ("id")
@@ -79,7 +79,7 @@ ALTER TABLE "DoiRegistration" ADD CONSTRAINT "DoiRegistration_submission_id_fkey
 ALTER TABLE "DoiRegistration" ADD CONSTRAINT "DoiRegistration_site_id_fkey" FOREIGN KEY ("site_id") REFERENCES "Site"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "DoiRegistration" ADD CONSTRAINT "DoiRegistration_created_by_id_fkey" FOREIGN KEY ("created_by_id") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "DoiRegistration" ADD CONSTRAINT "DoiRegistration_created_by_id_fkey" FOREIGN KEY ("created_by_id") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "DoiDeposit" ADD CONSTRAINT "DoiDeposit_registration_id_fkey" FOREIGN KEY ("registration_id") REFERENCES "DoiRegistration"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
