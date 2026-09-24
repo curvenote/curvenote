@@ -6,13 +6,7 @@ import { DOI_CONTENT_TYPE, cn, ui } from '@curvenote/scms-core';
 import type { EligibleKindDTO, SiteDoiConfigDTO } from '../../backend/doi/types.js';
 import { DOI_CONTENT_TYPE_LABELS } from './doi.utils.js';
 import type { DoiActionData } from './doi.utils.js';
-import {
-  draftFromKinds,
-  draftToField,
-  isDraftDirty,
-  setContentType,
-  setEligible,
-} from './eligibleKinds.utils.js';
+import { draftFromKinds, draftToField, isDraftDirty, setEligible } from './eligibleKinds.utils.js';
 import { LockedLabel } from './LockedLabel.js';
 
 const COLUMNS = 'grid grid-cols-2 gap-4 items-center px-4';
@@ -118,7 +112,7 @@ function EligibleKindsForm({ config, kinds, fetcher, children }: EligibleKindsFo
               value={draft[kind.id] ?? null}
               busy={busy}
               onEligibleChange={(eligible) => setDraft(setEligible(draft, kind.id, eligible))}
-              onContentTypeChange={(value) => setDraft(setContentType(draft, kind.id, value))}
+              onContentTypeChange={(value) => setDraft({ ...draft, [kind.id]: value })}
             />
           ))}
         </ul>

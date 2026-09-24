@@ -1,13 +1,7 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, expect, it } from 'vitest';
 import type { EligibleKindDTO } from '../../backend/doi/types.js';
-import {
-  draftFromKinds,
-  draftToField,
-  isDraftDirty,
-  setContentType,
-  setEligible,
-} from './eligibleKinds.utils.js';
+import { draftFromKinds, draftToField, isDraftDirty, setEligible } from './eligibleKinds.utils.js';
 
 const kinds: EligibleKindDTO[] = [
   { id: 'kind-article', title: 'Article', doiContentType: null, locked: false },
@@ -26,15 +20,6 @@ describe('eligible kinds draft', () => {
     expect(checked['kind-article']).toBe('PREPRINT');
     expect(isDraftDirty(kinds, checked)).toBe(true);
     expect(isDraftDirty(kinds, setEligible(checked, 'kind-article', false))).toBe(false);
-  });
-
-  it('changing the select changes the value', () => {
-    const draft = setContentType(
-      setEligible(draftFromKinds(kinds), 'kind-article', true),
-      'kind-article',
-      'PREPRINT',
-    );
-    expect(draft['kind-article']).toBe('PREPRINT');
   });
 
   it('treats a kind missing from the draft as not eligible', () => {

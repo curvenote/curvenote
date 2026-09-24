@@ -17,14 +17,6 @@ export function setEligible(
   return { ...draft, [kindId]: eligible ? DOI_CONTENT_TYPE.PREPRINT : null };
 }
 
-export function setContentType(
-  draft: KindMappingDraft,
-  kindId: string,
-  value: string,
-): KindMappingDraft {
-  return { ...draft, [kindId]: value };
-}
-
 /** A kind the draft does not know yet, e.g. one created in another tab, counts as not eligible. */
 export function isDraftDirty(kinds: EligibleKindDTO[], draft: KindMappingDraft): boolean {
   return kinds.some((kind) => (draft[kind.id] ?? null) !== kind.doiContentType);
