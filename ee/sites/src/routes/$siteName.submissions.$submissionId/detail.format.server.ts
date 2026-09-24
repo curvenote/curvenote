@@ -104,7 +104,11 @@ function formatDetailActivity(
 
   const doiRegistration =
     activity.activity_type.startsWith('DOI_REGISTRATION_') && typeof data?.doi === 'string'
-      ? { doi: data.doi, message: typeof data.message === 'string' ? data.message : undefined }
+      ? {
+          doi: data.doi,
+          error: typeof data.error === 'string' ? data.error : undefined,
+          warning: typeof data.warning === 'string' ? data.warning : undefined,
+        }
       : undefined;
 
   return {

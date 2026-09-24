@@ -8,8 +8,11 @@ type RegistrationActivityInput = {
   submissionId: string;
   submissionVersionId: string;
   userId: string;
-  /** `{ doi, depositId, message? }`; the submission timeline shows the DOI and the message. */
-  data: { doi: string; depositId: string; message?: string };
+  /**
+   * `error` is what a failure stored in `DoiDeposit.error`, `warning` what a registration stored in
+   * `DoiDeposit.warning`; kept apart as on the attempt so the timeline never has to tell them apart.
+   */
+  data: { doi: string; depositId: string; error?: string; warning?: string };
 };
 
 /** One activity per registration transition, in the same transaction as the write. */

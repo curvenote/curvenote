@@ -67,7 +67,7 @@ function createContext(): SiteContext {
 }
 
 describe('formatDetailActivity - DOI Registration', () => {
-  test('DOI_REGISTRATION_STARTED activity formats to doi_registration with doi and no message', () => {
+  test('DOI_REGISTRATION_STARTED activity formats to doi_registration with just the doi', () => {
     const ctx = createContext();
     const row = createRow([
       createActivity({
@@ -79,18 +79,15 @@ describe('formatDetailActivity - DOI Registration', () => {
     const { submission } = formatSubmissionDetailSubmission(ctx, row);
     const activity = submission.activity[0];
 
-    expect(activity.doi_registration).toEqual({
-      doi: '10.1/x',
-      message: undefined,
-    });
+    expect(activity.doi_registration).toEqual({ doi: '10.1/x' });
   });
 
-  test('DOI_REGISTRATION_FAILED activity with message formats correctly', () => {
+  test('DOI_REGISTRATION_FAILED activity carries the stored error', () => {
     const ctx = createContext();
     const row = createRow([
       createActivity({
         activity_type: 'DOI_REGISTRATION_FAILED',
-        data: { doi: '10.2/y', depositId: 'd', message: 'site_credentials_rejected' },
+        data: { doi: '10.2/y', depositId: 'd', error: 'site_credentials_rejected' },
       }),
     ]);
 
@@ -99,11 +96,11 @@ describe('formatDetailActivity - DOI Registration', () => {
 
     expect(activity.doi_registration).toEqual({
       doi: '10.2/y',
-      message: 'site_credentials_rejected',
+      error: 'site_credentials_rejected',
     });
   });
 
-  test('DOI_REGISTRATION_COMPLETED activity with optional message', () => {
+  test('DOI_REGISTRATION_COMPLETED activity without a warning', () => {
     const ctx = createContext();
     const row = createRow([
       createActivity({
@@ -115,10 +112,22 @@ describe('formatDetailActivity - DOI Registration', () => {
     const { submission } = formatSubmissionDetailSubmission(ctx, row);
     const activity = submission.activity[0];
 
-    expect(activity.doi_registration).toEqual({
-      doi: '10.3/z',
-      message: undefined,
-    });
+    expect(activity.doi_registration).toEqual({ doi: '10.3/z' });
+  });
+
+  test('DOI_REGISTRATION_COMPLETED activity carries the warning', () => {
+    const ctx = createContext();
+    const row = createRow([
+      createActivity({
+        activity_type: 'DOI_REGISTRATION_COMPLETED',
+        data: { doi: '10.3/z', depositId: 'd', warning: 'Added with conflict' },
+      }),
+    ]);
+
+    const { submission } = formatSubmissionDetailSubmission(ctx, row);
+    const activity = submission.activity[0];
+
+    expect(activity.doi_registration).toEqual({ doi: '10.3/z', warning: 'Added with conflict' });
   });
 
   test('SUBMISSION_KIND_CHANGE activity does not have doi_registration', () => {

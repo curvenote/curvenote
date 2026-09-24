@@ -70,7 +70,7 @@ describe('failDeposit', () => {
       expect.objectContaining({
         type: 'DOI_REGISTRATION_FAILED',
         userId: 'sa-1',
-        data: { doi: '10.62329/abcd1234', depositId: 'dep-1', message: 'internal_error' },
+        data: { doi: '10.62329/abcd1234', depositId: 'dep-1', error: 'internal_error' },
       }),
     );
   });
@@ -121,7 +121,7 @@ describe('applyDepositResult', () => {
       submissionId: 'sub-1',
       submissionVersionId: 'sv-1',
       userId: 'sa-1',
-      data: { doi: '10.62329/abcd1234', depositId: 'dep-1', message: undefined },
+      data: { doi: '10.62329/abcd1234', depositId: 'dep-1', warning: undefined },
     });
   });
 
@@ -142,7 +142,7 @@ describe('applyDepositResult', () => {
       expect.objectContaining({
         type: 'DOI_REGISTRATION_COMPLETED',
         userId: 'sa-1',
-        data: expect.objectContaining({ message: 'Added with conflict' }),
+        data: expect.objectContaining({ warning: 'Added with conflict' }),
       }),
     );
   });
@@ -169,7 +169,7 @@ describe('applyDepositResult', () => {
       expect.objectContaining({
         type: 'DOI_REGISTRATION_FAILED',
         userId: 'sa-1',
-        data: expect.objectContaining({ message: xsd }),
+        data: expect.objectContaining({ error: xsd }),
       }),
     );
   });

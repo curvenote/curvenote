@@ -158,7 +158,8 @@ function getActivityDetails(activity: SubmissionDetailActivity): ReactNode {
       <ActivityDetailRows
         rows={[
           ['DOI', activity.doi_registration.doi],
-          ['Message', activity.doi_registration.message],
+          ['Error', activity.doi_registration.error],
+          ['Warning', activity.doi_registration.warning],
         ]}
       />
     );

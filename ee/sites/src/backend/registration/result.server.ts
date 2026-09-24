@@ -40,22 +40,19 @@ async function settleDeposit(tx: DoiTx, deposit: DepositRow, data: SettleDeposit
   return count === 1;
 }
 
-type ActivityType = 'DOI_REGISTRATION_COMPLETED' | 'DOI_REGISTRATION_FAILED';
+type ResultActivity =
+  | { type: 'DOI_REGISTRATION_COMPLETED'; warning?: string }
+  | { type: 'DOI_REGISTRATION_FAILED'; error: string };
 
-function writeActivity(
-  tx: DoiTx,
-  deposit: DepositRow,
-  userId: string,
-  type: ActivityType,
-  message?: string,
-) {
+function writeActivity(tx: DoiTx, deposit: DepositRow, userId: string, activity: ResultActivity) {
+  const { type, ...result } = activity;
   return writeRegistrationActivity(tx, {
     type,
     siteId: deposit.registration.site_id,
     submissionId: deposit.registration.submission_id,
     submissionVersionId: deposit.submission_version_id,
     userId,
-    data: { doi: deposit.registration.doi, depositId: deposit.id, message },
+    data: { doi: deposit.registration.doi, depositId: deposit.id, ...result },
   });
 }
 
@@ -73,9 +70,9 @@ async function leaveSubmitting(tx: DoiTx, deposit: DepositRow, status: string) {
   return count === 1;
 }
 
-async function failRegistration(tx: DoiTx, deposit: DepositRow, userId: string, message: string) {
+async function failRegistration(tx: DoiTx, deposit: DepositRow, userId: string, error: string) {
   if (await leaveSubmitting(tx, deposit, DOI_REGISTRATION_STATUS.FAILED)) {
-    await writeActivity(tx, deposit, userId, 'DOI_REGISTRATION_FAILED', message);
+    await writeActivity(tx, deposit, userId, { type: 'DOI_REGISTRATION_FAILED', error });
   }
 }
 
@@ -94,7 +91,7 @@ async function registerSubmission(
     data: { doi: deposit.registration.doi },
     select: { id: true },
   });
-  await writeActivity(tx, deposit, userId, 'DOI_REGISTRATION_COMPLETED', warning);
+  await writeActivity(tx, deposit, userId, { type: 'DOI_REGISTRATION_COMPLETED', warning });
 }
 
 /** Crossref's messages for the records with this status, or undefined when it gave none. */
