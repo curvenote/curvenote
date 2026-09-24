@@ -1,7 +1,7 @@
 import { formatDate, type TagDTO } from '@curvenote/common';
 import type { SiteContext } from '@curvenote/scms-server';
 import { signPrivateUrls } from '@curvenote/scms-server';
-import { coerceToObject, type WorkflowTransition } from '@curvenote/scms-core';
+import { coerceToObject, resolveSiteWorkDoi, type WorkflowTransition } from '@curvenote/scms-core';
 import { describeDoiFailure } from '../../backend/registration/failure.js';
 import { formatSiteLayoutSite } from '../$siteName/layout.format.server.js';
 import { findImportantVersions } from '../$siteName.submissions._index/listing.utils.server.js';
@@ -47,7 +47,11 @@ function formatDetailSiteWork(
     title: wv.title ?? '',
     description: wv.description ?? undefined,
     authors: wv.authors.map((name) => ({ name })),
-    doi: wv.doi ?? submission.work?.doi ?? undefined,
+    doi: resolveSiteWorkDoi({
+      submission: submission.doi,
+      workVersion: wv.doi,
+      work: submission.work?.doi,
+    }),
     key: submission.work?.key ?? undefined,
     links: {
       thumbnail,

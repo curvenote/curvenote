@@ -26,6 +26,7 @@ function createRow(activities: SubmissionDetailRow['activity']): SubmissionDetai
     id: 'submission-1',
     date_created: new Date('2026-01-01'),
     date_published: undefined,
+    doi: null,
     kind: { id: 'kind-1', name: 'article', content: null },
     collection: { id: 'coll-1', name: 'collection', workflow: 'default', content: null },
     submitted_by: { id: 'user-1', display_name: 'Submitter' },
@@ -148,5 +149,29 @@ describe('formatDetailActivity - DOI Registration', () => {
     const { submission } = formatSubmissionDetailSubmission(createContext(), row);
 
     expect(submission.activity[0].doi_registration).toBeUndefined();
+  });
+});
+
+describe('formatDetailSiteWork - DOI precedence', () => {
+  test('a registered submission DOI wins over the work DOIs', () => {
+    const row = {
+      ...createRow([]),
+      doi: '10.62329/registered',
+      work: { doi: '10.1/work', key: null },
+    };
+    row.versions[0].work_version.doi = '10.1/version';
+    const { versions } = formatSubmissionDetailSubmission(createContext(), row);
+    expect(versions[0].site_work.doi).toBe('10.62329/registered');
+  });
+
+  test('without a registration the work version DOI, then the work DOI, still show', () => {
+    const row = { ...createRow([]), work: { doi: '10.1/work', key: null } };
+    expect(formatSubmissionDetailSubmission(createContext(), row).versions[0].site_work.doi).toBe(
+      '10.1/work',
+    );
+    row.versions[0].work_version.doi = '10.1/version';
+    expect(formatSubmissionDetailSubmission(createContext(), row).versions[0].site_work.doi).toBe(
+      '10.1/version',
+    );
   });
 });
