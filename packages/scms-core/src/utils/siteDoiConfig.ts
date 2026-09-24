@@ -18,3 +18,13 @@ export const SITE_DOI_CONFIG_STATUS = {
 
 export type SiteDoiConfigStatus =
   (typeof SITE_DOI_CONFIG_STATUS)[keyof typeof SITE_DOI_CONFIG_STATUS];
+
+/**
+ * Values of `SubmissionKind.doi_content_type`: what a kind's DOIs are registered as, in Curvenote's
+ * own terms. Each registration agency's deposit mapper translates them into its vocabulary.
+ */
+export const DOI_CONTENT_TYPE = {
+  PREPRINT: 'PREPRINT',
+} as const;
+
+export type DoiContentType = (typeof DOI_CONTENT_TYPE)[keyof typeof DOI_CONTENT_TYPE];
