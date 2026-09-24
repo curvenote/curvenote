@@ -6,22 +6,6 @@
 /** Stored when Crossref rejected a deposit without saying why. */
 export const CROSSREF_REJECTED = 'crossref_rejected';
 
-/**
- * Every code our jobs write to `DoiDeposit.error`, as opposed to Crossref's own rejection message
- * (a free-form string `describeDoiFailure` also has to accept). Typing `failDeposit`'s input on
- * this union turns a missing or misspelled code into a `tsc` error instead of a silent "Crossref
- * rejected the metadata" for our own internal failure.
- */
-export type DoiFailureCode =
-  | typeof CROSSREF_REJECTED
-  | 'site_credentials_rejected'
-  | 'site_not_active'
-  | 'internal_error'
-  | 'dispatch_failed'
-  | 'deposit_not_received'
-  | 'no_deposit_after_horizon'
-  | 'no_result_after_horizon';
-
 export type DoiFailureReason = {
   summary: string;
   /** Crossref's own words, shown folded: they are schema errors a site admin rarely needs. */
@@ -35,10 +19,10 @@ const NO_ANSWER =
 
 /**
  * `DoiDeposit.error` holds either a code our jobs wrote or, for a rejection, Crossref's message.
- * Codes never reach the page: an unknown code would read as Crossref's message, so `Record` over
- * `DoiFailureCode` makes a code missing its entry a `tsc` error rather than a silent fallback.
+ * Codes never reach the page: an unknown code would read as Crossref's message, so this table is
+ * the list of codes itself and `DoiFailureCode` is derived from it.
  */
-const BY_CODE: Record<DoiFailureCode, DoiFailureReason> = {
+const BY_CODE = {
   [CROSSREF_REJECTED]: { summary: REJECTED },
   site_credentials_rejected: {
     summary:
@@ -50,7 +34,15 @@ const BY_CODE: Record<DoiFailureCode, DoiFailureReason> = {
   internal_error: { summary: NOT_SUBMITTED },
   dispatch_failed: { summary: NOT_SUBMITTED },
   deposit_not_received: { summary: NOT_SUBMITTED },
-};
+} satisfies Record<string, DoiFailureReason>;
+
+/**
+ * Every code our jobs write to `DoiDeposit.error`, as opposed to Crossref's own rejection message
+ * (a free-form string `describeDoiFailure` also has to accept). Typing `failDeposit`'s input on
+ * this union turns a code without readable copy into a `tsc` error instead of a silent "Crossref
+ * rejected the metadata" for our own internal failure.
+ */
+export type DoiFailureCode = keyof typeof BY_CODE;
 
 /** Looked up by an arbitrary stored string, not just a known `DoiFailureCode`: Crossref's own
  * rejection messages land here too, and must miss the lookup rather than index into it. */
