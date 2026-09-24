@@ -26,6 +26,7 @@ type SettleDepositData = {
   error?: string;
   warning?: string;
   result_xml_path?: string;
+  crossref_submission_id?: string;
 };
 
 /**
@@ -145,6 +146,7 @@ export async function applyDepositResult(
         status: DOI_DEPOSIT_STATUS.FAILED,
         error,
         result_xml_path: resultXmlPath,
+        crossref_submission_id: result.submissionId,
       });
       if (settled) {
         await failRegistration(tx, deposit, userId, error);
@@ -156,6 +158,7 @@ export async function applyDepositResult(
       status: DOI_DEPOSIT_STATUS.SUCCEEDED,
       warning,
       result_xml_path: resultXmlPath,
+      crossref_submission_id: result.submissionId,
     });
     if (settled) {
       await registerSubmission(tx, deposit, userId, warning);

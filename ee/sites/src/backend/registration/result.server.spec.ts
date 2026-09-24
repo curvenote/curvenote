@@ -102,6 +102,7 @@ describe('applyDepositResult', () => {
       data: expect.objectContaining({
         status: 'SUCCEEDED',
         result_xml_path: resultXmlPath,
+        crossref_submission_id: '1735620245',
         completed_at: expect.any(String),
       }),
     });
@@ -159,6 +160,7 @@ describe('applyDepositResult', () => {
       status: 'FAILED',
       error: xsd,
       result_xml_path: resultXmlPath,
+      crossref_submission_id: '1735620245',
     });
     expect(p.doiRegistration.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ status: 'FAILED' }) }),
