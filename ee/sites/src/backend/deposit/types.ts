@@ -42,7 +42,8 @@ export type DepositFrontmatter = {
 export type DepositSource = {
   submissionVersionId: string;
   siteId: string;
-  kindName: string;
+  /** The submission's kind: its title for messages, and what its DOIs register as (null: none). */
+  kind: { title: string; doiContentType: string | null };
   doiConfig: { status: string; prefix: string; role: string | null } | null;
   dates: {
     /** `Submission.date_published`. */

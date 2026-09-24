@@ -4,6 +4,7 @@ import type { Context } from '@curvenote/scms-server';
 import { getPrismaClient, getSignedCDNQuery } from '@curvenote/scms-server';
 import { extractPart } from 'myst-common';
 import type { GenericParent } from 'myst-common';
+import { kindTitle } from '../kinds.utils.js';
 import { mergeFrontmatter } from './overlay.js';
 import { depositSourceSelect } from './select.server.js';
 import type { DepositSourceRow } from './select.server.js';
@@ -101,7 +102,10 @@ export async function loadDepositSource(
   return {
     submissionVersionId: row.id,
     siteId: row.submission.site_id,
-    kindName: row.submission.kind.name,
+    kind: {
+      title: kindTitle(row.submission.kind),
+      doiContentType: row.submission.kind.doi_content_type,
+    },
     doiConfig: row.submission.site.doiConfig,
     dates: {
       submissionPublished: row.submission.date_published ?? undefined,

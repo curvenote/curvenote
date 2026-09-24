@@ -6,13 +6,30 @@ import { depositTypeForKind, toDeposit } from './mapper.js';
 import { lapalmaOptions, lapalmaSource } from './fixtures/source.lapalma.js';
 
 describe('depositTypeForKind', () => {
-  it('maps every kind to posted_content in the MVP', () => {
-    expect(depositTypeForKind('Article')).toBe('posted_content');
-    expect(depositTypeForKind('Anything')).toBe('posted_content');
+  it('deposits a preprint kind as posted_content of type preprint', () => {
+    expect(depositTypeForKind('PREPRINT')).toEqual({ element: 'posted_content', type: 'preprint' });
+  });
+
+  it.each([[null], ['JOURNAL_ARTICLE'], ['toString']])('treats %s as not eligible', (value) => {
+    expect(depositTypeForKind(value)).toBeNull();
   });
 });
 
 describe('toDeposit', () => {
+  it('blocks a kind that cannot receive DOIs, naming it', () => {
+    const { preprint, issues } = toDeposit(
+      lapalmaSource({ kind: { title: 'Blog', doiContentType: null } }),
+      lapalmaOptions,
+    );
+    expect(preprint).toBeUndefined();
+    expect(issues).toContainEqual({
+      severity: 'blocking',
+      code: 'kind_not_eligible',
+      message:
+        'Submissions of kind "Blog" can\'t receive DOIs. A site admin can enable it in DOI Registration.',
+    });
+  });
+
   it('maps a complete source with no issues', () => {
     const { preprint, batch, issues } = toDeposit(lapalmaSource(), lapalmaOptions);
     expect(issues).toEqual([]);
