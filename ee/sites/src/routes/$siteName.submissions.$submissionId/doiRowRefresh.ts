@@ -14,6 +14,9 @@ export function doiRowRefreshKey(view: DoiRegistrationView | null): string | nul
 export type DoiStatusResponse = { key: string | null };
 
 const INTERVAL_MS = 10_000;
+// Rides out a network blip or a brief outage without freezing the row; a persistent refusal
+// (e.g. a lost session answered with a redirect on every attempt) still stops within ~5 minutes.
+const STATUS_CHECK_RETRIES = 30;
 
 /**
  * While the registration is in progress, reads the row's key every 10 s and reloads the page once
@@ -31,6 +34,7 @@ export function useDoiRowRefresh(statusUrl: string, key: string | null) {
     url: statusUrl,
     interval: INTERVAL_MS,
     enabled: key !== null,
+    numRetries: STATUS_CHECK_RETRIES,
     shouldStop,
     onComplete,
   });
