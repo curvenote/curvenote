@@ -8,13 +8,12 @@ export type SiteDoiConfigMode = (typeof SITE_DOI_CONFIG_MODE)[keyof typeof SITE_
 
 /**
  * Values of `SiteDoiConfig.status`. Stored as a string column, like `SubmissionVersion.status`.
- * NEEDS_ATTENTION is only "the bound role no longer authenticates" (a 401 under a role that once
- * validated); a rejected deposit is that registration's failure and leaves the site ACTIVE.
+ * A failed deposit, a Crossref 401 included, is that registration's failure and leaves the site
+ * ACTIVE.
  */
 export const SITE_DOI_CONFIG_STATUS = {
   PENDING_ROLE: 'PENDING_ROLE',
   ACTIVE: 'ACTIVE',
-  NEEDS_ATTENTION: 'NEEDS_ATTENTION',
 } as const;
 
 export type SiteDoiConfigStatus =

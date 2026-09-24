@@ -25,7 +25,6 @@ const SELECT = {
   prefix_owner: true,
   role: true,
   status: true,
-  attention_reason: true,
   occ: true,
 } as const;
 
@@ -38,7 +37,7 @@ export function toSnapshot(row: DoiConfigRow): DoiConfigSnapshot {
 }
 
 export function toDTO(row: DoiConfigRow): SiteDoiConfigDTO {
-  return { ...toSnapshot(row), attention_reason: row.attention_reason, occ: row.occ };
+  return { ...toSnapshot(row), occ: row.occ };
 }
 
 export function dbGetDoiConfig(client: Reader, siteId: string) {

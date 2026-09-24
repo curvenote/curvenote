@@ -36,7 +36,6 @@ export function row(overrides: Partial<DoiConfigRow> = {}): DoiConfigRow {
     prefix_owner: 'Elemental Microscopy Society',
     role: null,
     status: 'PENDING_ROLE',
-    attention_reason: null,
     occ: 0,
     ...overrides,
   };

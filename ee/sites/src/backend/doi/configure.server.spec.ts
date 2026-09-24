@@ -145,7 +145,6 @@ describe('updatePrefix', () => {
   test.each([
     ['no row', null],
     ['an ACTIVE row', row({ status: 'ACTIVE', role: 'elms' })],
-    ['a NEEDS_ATTENTION row', row({ status: 'NEEDS_ATTENTION', role: 'elms' })],
     ['a Curvenote row', row({ mode: 'CURVENOTE_PREFIX', status: 'ACTIVE' })],
     ['a stale occ', row({ occ: 3 })],
   ])('refuses on %s', async (_name, existing) => {

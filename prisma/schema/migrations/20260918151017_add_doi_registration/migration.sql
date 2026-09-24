@@ -13,6 +13,9 @@ ALTER TYPE "ActivityType" ADD VALUE 'DOI_REGISTRATION_FAILED';
 -- AlterTable
 ALTER TABLE "Submission" ADD COLUMN     "doi" TEXT;
 
+-- AlterTable
+ALTER TABLE "SiteDoiConfig" DROP COLUMN "attention_reason";
+
 -- CreateTable
 CREATE TABLE "DoiRegistration" (
     "id" TEXT NOT NULL,
