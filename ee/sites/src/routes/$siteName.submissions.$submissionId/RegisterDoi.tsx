@@ -29,22 +29,7 @@ type BlockersProps = {
 
 function Blockers({ issues, setupUrl }: BlockersProps) {
   const blockers = describeDoiBlockers(issues);
-  if (blockers.kind === 'site_not_active') {
-    return (
-      <Blocker>
-        DOIs are not set up for this site.
-        {setupUrl && (
-          <>
-            {' '}
-            <Link to={setupUrl} className="text-primary hover:underline">
-              Set up DOIs
-            </Link>
-          </>
-        )}
-      </Blocker>
-    );
-  }
-  if (blockers.kind === 'kind_not_eligible') {
+  if (blockers.kind === 'setup') {
     return (
       <Blocker>
         {blockers.sentence}
@@ -52,7 +37,7 @@ function Blockers({ issues, setupUrl }: BlockersProps) {
           <>
             {' '}
             <Link to={setupUrl} className="text-primary hover:underline">
-              Open DOI Registration
+              {blockers.action}
             </Link>
           </>
         )}
