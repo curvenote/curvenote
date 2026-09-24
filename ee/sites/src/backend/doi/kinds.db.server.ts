@@ -1,6 +1,7 @@
 import type { DoiContentType } from '@curvenote/scms-core';
+import { kindTitle } from '../kinds.utils.js';
 import { LIVE_REGISTRATION_STATUSES } from './db.server.js';
-import type { DoiDeps, DoiTx } from './types.js';
+import type { DoiDeps, DoiTx, EligibleKindDTO } from './types.js';
 
 type Reader = Pick<DoiDeps['prisma'], 'submissionKind' | 'submission'> | DoiTx;
 
@@ -52,4 +53,21 @@ export async function dbSetKindContentType(
     },
   });
   return count === 1;
+}
+
+/** The Eligible Submission Kinds card's rows, in name order. */
+export async function dbListKindMappings(
+  client: Reader,
+  siteId: string,
+): Promise<EligibleKindDTO[]> {
+  const [kinds, locked] = await Promise.all([
+    dbGetSiteKinds(client, siteId),
+    dbKindIdsWithLiveRegistrations(client, { siteId }),
+  ]);
+  return kinds.map((kind) => ({
+    id: kind.id,
+    title: kindTitle(kind),
+    doiContentType: kind.doi_content_type,
+    locked: locked.has(kind.id),
+  }));
 }

@@ -13,7 +13,8 @@ import { getPrismaClient, userHasScope, withAppSiteContext } from '@curvenote/sc
 import { crossrefCredentialsFromConfig } from '../../backend/crossref/client.server.js';
 import { getSiteWithAppData } from '../../backend/db.server.js';
 import { dbGetDoiConfig, dbGetRoleBoundBy, toDTO } from '../../backend/doi/db.server.js';
-import type { SiteDoiConfigDTO } from '../../backend/doi/types.js';
+import { dbListKindMappings } from '../../backend/doi/kinds.db.server.js';
+import type { EligibleKindDTO, SiteDoiConfigDTO } from '../../backend/doi/types.js';
 import { runDoiIntent } from './actionHelper.server.js';
 import { DoiStatusCard } from './DoiStatusCard.js';
 import { DoiAccountCard } from './DoiAccountCard.js';
@@ -32,6 +33,8 @@ export interface LoaderData {
    */
   crossref: { prefix: string; depositorEmail: string } | null;
   roleBoundBy?: { name: string; date: string };
+  /** Empty until the site has a DOI setup: the card only shows then. */
+  kinds: EligibleKindDTO[];
 }
 
 /** Site admins only: members hold site:doi:read, which does not open this screen. */
@@ -69,6 +72,7 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
     isSystemAdmin: userHasScope(ctx.user, scopes.system.admin),
     crossref,
     roleBoundBy: hasBoundRole ? await dbGetRoleBoundBy(prisma, ctx.site.id) : undefined,
+    kinds: row ? await dbListKindMappings(prisma, ctx.site.id) : [],
   };
 }
 
