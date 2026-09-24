@@ -10,11 +10,15 @@ type DepositRow = {
     doi: string;
     submission_id: string;
     site_id: string;
-    created_by_id: string;
   };
 };
 
-type FailDepositInput = { deposit: DepositRow; error: string };
+/**
+ * `userId` is who the DOI_REGISTRATION_FAILED activity is attributed to. The caller names it
+ * because a failure can land long after the Register click, when the user who started the
+ * registration may no longer exist.
+ */
+type FailDepositInput = { deposit: DepositRow; error: string; userId: string };
 
 /**
  * Attempt and registration fail with `error`; the site is untouched. Both updates are guarded on
@@ -22,7 +26,7 @@ type FailDepositInput = { deposit: DepositRow; error: string };
  * nothing and the DOI_REGISTRATION_FAILED activity is written once.
  */
 export async function failDeposit(prisma: DoiDeps['prisma'], input: FailDepositInput) {
-  const { deposit, error } = input;
+  const { deposit, error, userId } = input;
   await prisma.$transaction(async (tx) => {
     const now = new Date().toISOString();
     const attempt = await tx.doiDeposit.updateMany({
@@ -44,7 +48,7 @@ export async function failDeposit(prisma: DoiDeps['prisma'], input: FailDepositI
       siteId: deposit.registration.site_id,
       submissionId: deposit.registration.submission_id,
       submissionVersionId: deposit.submission_version_id,
-      userId: deposit.registration.created_by_id,
+      userId,
       data: { doi: deposit.registration.doi, depositId: deposit.id, message: error },
     });
   });

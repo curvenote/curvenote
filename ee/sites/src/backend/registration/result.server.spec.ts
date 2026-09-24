@@ -25,7 +25,6 @@ const deposit = {
     status: 'SUBMITTING',
     submission_id: 'sub-1',
     site_id: 'site-a',
-    created_by_id: 'u1',
   },
 };
 
@@ -37,7 +36,7 @@ beforeEach(() => {
 
 describe('failDeposit', () => {
   it('fails attempt and registration with the given error', async () => {
-    await failDeposit(p, { deposit, error: 'internal_error' });
+    await failDeposit(p, { deposit, error: 'internal_error', userId: 'sa-1' });
     expect(p.doiDeposit.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: 'dep-1', status: 'PENDING' },
@@ -49,19 +48,19 @@ describe('failDeposit', () => {
     );
     expect(activity.writeRegistrationActivity).toHaveBeenCalledWith(
       p,
-      expect.objectContaining({ type: 'DOI_REGISTRATION_FAILED' }),
+      expect.objectContaining({ type: 'DOI_REGISTRATION_FAILED', userId: 'sa-1' }),
     );
   });
 
   it('does not write DOI_REGISTRATION_FAILED when the registration is no longer SUBMITTING', async () => {
     p.doiRegistration.updateMany.mockResolvedValue({ count: 0 });
-    await failDeposit(p, { deposit, error: 'internal_error' });
+    await failDeposit(p, { deposit, error: 'internal_error', userId: 'sa-1' });
     expect(activity.writeRegistrationActivity).not.toHaveBeenCalled();
   });
 
   it('is a no-op when the attempt is no longer PENDING (redelivery)', async () => {
     p.doiDeposit.updateMany.mockResolvedValue({ count: 0 });
-    await failDeposit(p, { deposit, error: 'internal_error' });
+    await failDeposit(p, { deposit, error: 'internal_error', userId: 'sa-1' });
     expect(p.doiRegistration.updateMany).not.toHaveBeenCalled();
     expect(activity.writeRegistrationActivity).not.toHaveBeenCalled();
   });

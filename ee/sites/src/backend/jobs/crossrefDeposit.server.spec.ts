@@ -53,7 +53,6 @@ const row = () => ({
     status: 'SUBMITTING',
     submission_id: 'sub-1',
     site_id: 'site-a',
-    created_by_id: 'u1',
   },
 });
 const job = {
@@ -61,7 +60,7 @@ const job = {
   job_type: 'CROSSREF_DEPOSIT',
   payload: { depositId: 'dep-1', siteId: 'site-a', attempt: 1 },
 } as any;
-const ctx = { $config: {} } as any;
+const ctx = { $config: { api: { submissionsServiceAccount: { id: 'sa-1' } } } } as any;
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -167,6 +166,7 @@ describe('crossrefDepositHandler', () => {
     expect(mocks.failDeposit).toHaveBeenCalledWith(mocks.prisma, {
       deposit: expect.objectContaining({ id: 'dep-1' }),
       error: 'no_deposit_after_72h',
+      userId: 'sa-1',
     });
     expect(mocks.insertJobRow).not.toHaveBeenCalled();
     expect(out).toMatchObject({ status: 'COMPLETED' });
@@ -178,6 +178,7 @@ describe('crossrefDepositHandler', () => {
     expect(mocks.failDeposit).toHaveBeenCalledWith(mocks.prisma, {
       deposit: expect.objectContaining({ id: 'dep-1' }),
       error: 'site_credentials_rejected',
+      userId: 'sa-1',
     });
     expect(out).toMatchObject({ status: 'COMPLETED' });
   });
@@ -188,6 +189,7 @@ describe('crossrefDepositHandler', () => {
     expect(mocks.failDeposit).toHaveBeenCalledWith(mocks.prisma, {
       deposit: expect.objectContaining({ id: 'dep-1' }),
       error: 'Crossref deposit was not received',
+      userId: 'sa-1',
     });
     expect(out).toMatchObject({ status: 'COMPLETED' });
   });
@@ -201,7 +203,7 @@ describe('crossrefDepositHandler', () => {
     expect(mocks.deposit).not.toHaveBeenCalled();
     expect(mocks.failDeposit).toHaveBeenCalledWith(
       mocks.prisma,
-      expect.objectContaining({ error: 'site_not_active' }),
+      expect.objectContaining({ error: 'site_not_active', userId: 'sa-1' }),
     );
   });
 
@@ -213,6 +215,7 @@ describe('crossrefDepositHandler', () => {
     expect(mocks.failDeposit).toHaveBeenCalledWith(mocks.prisma, {
       deposit: expect.objectContaining({ id: 'dep-1' }),
       error: 'internal_error',
+      userId: 'sa-1',
     });
     error.mockRestore();
   });

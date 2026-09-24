@@ -66,7 +66,9 @@ async function rescheduleDeposit(
 }
 
 /**
- * Posts one attempt's XML and settles it on Crossref's answer. Never throws for a Crossref
+ * Posts one attempt's XML and settles it on Crossref's answer. A failure is the job's doing, not
+ * the Register click's, so its activity goes to the platform service account; the user who
+ * started the registration may also be gone by the time the job runs. Never throws for a Crossref
  * answer: see `isRetryable`. A non-`CrossrefError` throw (storage, database, a bug) is left to
  * `crossrefDepositHandler`, which fails the attempt before rethrowing.
  */
@@ -78,9 +80,10 @@ async function postDeposit(
   jobId: string,
 ) {
   const creds = crossrefCredentialsFromConfig(ctx.$config);
+  const userId = ctx.$config.api.submissionsServiceAccount.id;
   const site = await loadJobSite(prisma, payload.siteId);
   if (!site || site.status !== SITE_DOI_CONFIG_STATUS.ACTIVE) {
-    await failDeposit(prisma, { deposit: row, error: 'site_not_active' });
+    await failDeposit(prisma, { deposit: row, error: 'site_not_active', userId });
     return complete(jobId, `deposit ${row.id}: site is not ACTIVE, attempt failed`);
   }
   const role = site.role ?? creds.role;
@@ -88,7 +91,7 @@ async function postDeposit(
   try {
     const answer = await deposit(creds, { role, fileName: row.file_name, xml });
     if (answer.state === 'unauthorized') {
-      await failDeposit(prisma, { deposit: row, error: 'site_credentials_rejected' });
+      await failDeposit(prisma, { deposit: row, error: 'site_credentials_rejected', userId });
       return complete(jobId, `deposit ${row.id}: unauthorized, attempt failed`);
     }
     if (!(await markQueued(prisma, row))) {
@@ -104,13 +107,13 @@ async function postDeposit(
     }
     if (!isRetryable(error)) {
       // e.g. a 200 without SUCCESS in the body: Crossref answered, but not with a deposit.
-      await failDeposit(prisma, { deposit: row, error: error.message });
+      await failDeposit(prisma, { deposit: row, error: error.message, userId });
       return complete(jobId, `deposit ${row.id}: ${error.message}; attempt failed`);
     }
     if (pastHorizon(row, new Date())) {
       // A retryable error (5xx/429/timeout) that never resolved within the horizon: without this,
       // an endpoint that keeps answering 5xx/429 would reschedule hourly forever.
-      await failDeposit(prisma, { deposit: row, error: NO_DEPOSIT });
+      await failDeposit(prisma, { deposit: row, error: NO_DEPOSIT, userId });
       return complete(jobId, `deposit ${row.id}: ${NO_DEPOSIT}`);
     }
     const { scheduledAt, requeued } = await rescheduleDeposit(prisma, row, payload);
@@ -141,9 +144,12 @@ export async function crossrefDepositHandler(ctx: Context, data: CreateJob) {
     // Not a Crossref answer (storage, database, a bug). The runner only marks the job FAILED, so
     // without this the registration would stay SUBMITTING with no way to retry.
     console.error('[crossref-job]', data.id, `deposit ${row.id}: internal_error`, error);
-    await failDeposit(prisma, { deposit: row, error: 'internal_error' }).catch((failError) => {
-      console.error('[crossref-job]', data.id, 'could not fail the attempt', failError);
-    });
+    const userId = ctx.$config.api.submissionsServiceAccount.id;
+    await failDeposit(prisma, { deposit: row, error: 'internal_error', userId }).catch(
+      (failError) => {
+        console.error('[crossref-job]', data.id, 'could not fail the attempt', failError);
+      },
+    );
     throw error;
   }
 }

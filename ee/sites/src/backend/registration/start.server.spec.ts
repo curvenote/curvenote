@@ -310,10 +310,10 @@ describe('startRegistration: write', () => {
           doi: DOI,
           submission_id: 'sub-1',
           site_id: SITE,
-          created_by_id: 'u1',
         },
       },
       error: 'dispatch_failed',
+      userId: 'u1',
     });
     expect(mocks.failJob).toHaveBeenCalledWith('job-1', expect.stringContaining('dispatch_failed'));
     error.mockRestore();

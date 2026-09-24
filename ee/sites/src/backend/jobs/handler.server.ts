@@ -23,7 +23,6 @@ const depositRowSelect = {
       status: true,
       submission_id: true,
       site_id: true,
-      created_by_id: true,
     },
   },
 } satisfies Prisma.DoiDepositSelect;

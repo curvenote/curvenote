@@ -111,11 +111,11 @@ async function failNotQueued(input: FailNotQueuedInput) {
       doi: plan.doi,
       submission_id: plan.submissionId,
       site_id: plan.siteId,
-      created_by_id: input.userId,
     },
   };
   try {
-    await failDeposit(input.prisma, { deposit, error: 'dispatch_failed' });
+    // Still inside the user's Register request, so the failure is theirs.
+    await failDeposit(input.prisma, { deposit, error: 'dispatch_failed', userId: input.userId });
     await fail(input.jobId, `deposit ${input.depositId}: dispatch_failed`);
   } catch (error) {
     console.error('[doi] could not fail the undispatched attempt', input.depositId, error);
