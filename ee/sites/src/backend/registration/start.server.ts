@@ -78,7 +78,8 @@ async function loadStart(
   if (!site || site.status !== SITE_DOI_CONFIG_STATUS.ACTIVE) {
     return errors.NOT_ACTIVE;
   }
-  // A retry keeps its DOI. A DOI under an old prefix was never registered, so it is replaced.
+  // A retry keeps its DOI unless the site's prefix changed: the old DOI can no longer be deposited,
+  // so it is replaced. A FAILED attempt does not prove Crossref never received the old one.
   const keepDoi = existing && existing.prefix === site.prefix;
   const doi = keepDoi ? existing.doi : await generateFreeDoi(deps.prisma, site.prefix);
   return {
