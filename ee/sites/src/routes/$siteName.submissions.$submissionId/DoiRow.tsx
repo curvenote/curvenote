@@ -53,6 +53,11 @@ export function DoiRow({
     }
   }, [fetcher.state, fetcher.data]);
 
+  // A later version can arrive with its own DOI after a registration failed; that DOI, not the
+  // failed state, is what the rest of the page, the list and the API already show.
+  if (registration?.status === 'FAILED' && doi) {
+    return <DoiLink doi={doi} />;
+  }
   if (registration) {
     return (
       <DoiRegistrationState
