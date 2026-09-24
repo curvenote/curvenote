@@ -1,0 +1,162 @@
+import { useEffect, useState } from 'react';
+import type { FetcherWithComponents } from 'react-router';
+import { Link, useFetcher } from 'react-router';
+import { DOI_CONTENT_TYPE, ui } from '@curvenote/scms-core';
+import type { EligibleKindDTO, SiteDoiConfigDTO } from '../../backend/doi/types.js';
+import { DOI_CONTENT_TYPE_LABELS } from './doi.utils.js';
+import type { DoiActionData } from './doi.utils.js';
+import {
+  draftFromKinds,
+  draftToField,
+  isDraftDirty,
+  setContentType,
+  setEligible,
+} from './eligibleKinds.utils.js';
+import { LockedLabel } from './LockedLabel.js';
+
+type EligibleKindRowProps = {
+  kind: EligibleKindDTO;
+  value: string | null;
+  busy: boolean;
+  onEligibleChange: (eligible: boolean) => void;
+  onContentTypeChange: (value: string) => void;
+};
+
+function EligibleKindRow({
+  kind,
+  value,
+  busy,
+  onEligibleChange,
+  onContentTypeChange,
+}: EligibleKindRowProps) {
+  const checkboxId = `doi-kind-${kind.id}`;
+  const disabled = kind.locked || busy;
+  return (
+    <li className="flex flex-wrap gap-3 justify-between items-center py-3">
+      <div className="flex gap-2 items-center">
+        <ui.Checkbox
+          id={checkboxId}
+          checked={value !== null}
+          disabled={disabled}
+          onCheckedChange={(checked) => onEligibleChange(checked === true)}
+        />
+        {kind.locked ? (
+          <LockedLabel htmlFor={checkboxId}>{kind.title}</LockedLabel>
+        ) : (
+          <label htmlFor={checkboxId} className="text-sm font-medium">
+            {kind.title}
+          </label>
+        )}
+      </div>
+      <ui.Select
+        value={value ?? ''}
+        onValueChange={onContentTypeChange}
+        disabled={disabled || value === null}
+      >
+        <ui.SelectTrigger className="w-48" aria-label={`DOI content type for ${kind.title}`}>
+          <ui.SelectValue placeholder="Not eligible" />
+        </ui.SelectTrigger>
+        <ui.SelectContent>
+          {Object.values(DOI_CONTENT_TYPE).map((type) => (
+            <ui.SelectItem key={type} value={type}>
+              {DOI_CONTENT_TYPE_LABELS[type]}
+            </ui.SelectItem>
+          ))}
+        </ui.SelectContent>
+      </ui.Select>
+      {kind.locked && (
+        <p className="w-full text-xs text-muted-foreground">
+          DOIs of this Submission Kind are registered or being registered, so its content type
+          can&apos;t change.
+        </p>
+      )}
+    </li>
+  );
+}
+
+type EligibleKindsFormProps = {
+  config: SiteDoiConfigDTO;
+  kinds: EligibleKindDTO[];
+  fetcher: FetcherWithComponents<DoiActionData>;
+};
+
+/** Owns the draft. The card owns the fetcher, so its toast survives the remount after a save. */
+function EligibleKindsForm({ config, kinds, fetcher }: EligibleKindsFormProps) {
+  const [draft, setDraft] = useState(() => draftFromKinds(kinds));
+  const dirty = isDraftDirty(kinds, draft);
+  const busy = fetcher.state !== 'idle';
+  return (
+    <fetcher.Form method="POST" className="m-0 space-y-4">
+      <input type="hidden" name="intent" value="update-kind-mapping" />
+      <input type="hidden" name="occ" value={config.occ} />
+      <input type="hidden" name="kinds" value={draftToField(kinds, draft)} />
+      <ul className="divide-y divide-stone-200 dark:divide-stone-700">
+        {kinds.map((kind) => (
+          <EligibleKindRow
+            key={kind.id}
+            kind={kind}
+            value={draft[kind.id] ?? null}
+            busy={busy}
+            onEligibleChange={(eligible) => setDraft(setEligible(draft, kind.id, eligible))}
+            onContentTypeChange={(value) => setDraft(setContentType(draft, kind.id, value))}
+          />
+        ))}
+      </ul>
+      <div className="flex justify-end pt-4 space-x-3 border-t border-stone-200 dark:border-stone-700">
+        <ui.Button
+          type="button"
+          variant="secondary"
+          disabled={!dirty || busy}
+          onClick={() => setDraft(draftFromKinds(kinds))}
+        >
+          Discard
+        </ui.Button>
+        <ui.StatefulButton type="submit" disabled={!dirty} busy={busy} overlayBusy>
+          Save
+        </ui.StatefulButton>
+      </div>
+    </fetcher.Form>
+  );
+}
+
+type DoiEligibleKindsCardProps = {
+  config: SiteDoiConfigDTO;
+  kinds: EligibleKindDTO[];
+  /** The site's Submission Kinds settings. */
+  kindsUrl: string;
+};
+
+export function DoiEligibleKindsCard({ config, kinds, kindsUrl }: DoiEligibleKindsCardProps) {
+  const fetcher = useFetcher<DoiActionData>();
+  useEffect(() => {
+    if (fetcher.state === 'idle' && fetcher.data) {
+      if (fetcher.data.error) {
+        ui.toastError(fetcher.data.error);
+      } else if (fetcher.data.info) {
+        ui.toastSuccess(fetcher.data.info);
+      }
+    }
+  }, [fetcher.state, fetcher.data]);
+
+  return (
+    <ui.Card className="px-6 py-4 space-y-4">
+      <h2>Eligible Submission Kinds</h2>
+      <p className="text-sm font-light">
+        Choose which Submission Kinds can receive DOIs and how they should be registered with
+        Crossref.
+      </p>
+      {kinds.length === 0 ? (
+        <p className="text-sm text-muted-foreground">This Site has no Submission Kinds yet.</p>
+      ) : (
+        // Keyed by occ: a save remounts the form, which reseeds the draft without an effect.
+        <EligibleKindsForm key={config.occ} config={config} kinds={kinds} fetcher={fetcher} />
+      )}
+      <p className="text-xs text-muted-foreground">
+        Newly enabled Submission Kinds will appear here for review.{' '}
+        <Link to={kindsUrl} className="text-primary hover:underline">
+          Manage Submission Kinds
+        </Link>
+      </p>
+    </ui.Card>
+  );
+}
