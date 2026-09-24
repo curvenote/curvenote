@@ -12,7 +12,7 @@ import type { CrossrefJobPayload, JobDepositRow } from './handler.server.js';
 import { insertJobRow } from './schedule.server.js';
 import { loadJobSite } from './site.server.js';
 
-const NO_DEPOSIT = 'no_deposit_after_72h';
+const NO_DEPOSIT = 'no_deposit_after_horizon';
 /** Crossref answered, but neither with a received deposit nor with something worth retrying. */
 const DEPOSIT_NOT_RECEIVED = 'deposit_not_received';
 

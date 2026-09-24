@@ -12,7 +12,7 @@ import type { CrossrefJobPayload, JobDepositRow } from './handler.server.js';
 import { insertJobRow } from './schedule.server.js';
 import { loadJobSite } from './site.server.js';
 
-const NO_RESULT = 'no_result_after_72h';
+const NO_RESULT = 'no_result_after_horizon';
 
 /** Why this poll found no result; only for the job row's message. */
 type Pending = { reason: string; crossrefSubmissionId?: string };

@@ -19,8 +19,8 @@ export type DoiFailureCode =
   | 'internal_error'
   | 'dispatch_failed'
   | 'deposit_not_received'
-  | 'no_deposit_after_72h'
-  | 'no_result_after_72h';
+  | 'no_deposit_after_horizon'
+  | 'no_result_after_horizon';
 
 export type DoiFailureReason = {
   summary: string;
@@ -44,8 +44,8 @@ const BY_CODE: Record<DoiFailureCode, DoiFailureReason> = {
     summary:
       "Crossref didn't accept our credentials for this site. Contact Curvenote support, then retry.",
   },
-  no_deposit_after_72h: { summary: NO_ANSWER },
-  no_result_after_72h: { summary: NO_ANSWER },
+  no_deposit_after_horizon: { summary: NO_ANSWER },
+  no_result_after_horizon: { summary: NO_ANSWER },
   site_not_active: { summary: 'DOIs are no longer set up for this site.' },
   internal_error: { summary: NOT_SUBMITTED },
   dispatch_failed: { summary: NOT_SUBMITTED },

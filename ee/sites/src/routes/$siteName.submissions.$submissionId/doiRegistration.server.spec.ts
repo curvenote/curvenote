@@ -72,7 +72,7 @@ describe('loadDoiRegistrationView', () => {
 
   it('describes why a registration failed, from its latest attempt', async () => {
     server.prisma.doiRegistration.findFirst.mockResolvedValue(
-      registration('FAILED', [attempt('FAILED', { error: 'no_result_after_72h' })], 1),
+      registration('FAILED', [attempt('FAILED', { error: 'no_result_after_horizon' })], 1),
     );
     expect(await loadDoiRegistrationView('site-a', 'sub-1')).toEqual({
       status: 'FAILED',

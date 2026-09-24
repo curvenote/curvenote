@@ -205,7 +205,7 @@ describe('crossrefPollHandler', () => {
     await crossrefPollHandler(ctx, job(10));
     expect(mocks.failDeposit).toHaveBeenCalledWith(mocks.prisma, {
       deposit: expect.objectContaining({ id: 'dep-1' }),
-      error: 'no_result_after_72h',
+      error: 'no_result_after_horizon',
       userId: 'sa-1',
     });
     expect(mocks.insertJobRow).not.toHaveBeenCalled();

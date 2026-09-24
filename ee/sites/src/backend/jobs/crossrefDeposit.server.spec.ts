@@ -176,7 +176,7 @@ describe('crossrefDepositHandler', () => {
     const out = await crossrefDepositHandler(ctx, job);
     expect(mocks.failDeposit).toHaveBeenCalledWith(mocks.prisma, {
       deposit: expect.objectContaining({ id: 'dep-1' }),
-      error: 'no_deposit_after_72h',
+      error: 'no_deposit_after_horizon',
       userId: 'sa-1',
     });
     expect(mocks.insertJobRow).not.toHaveBeenCalled();

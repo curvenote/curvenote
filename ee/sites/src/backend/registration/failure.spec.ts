@@ -29,8 +29,8 @@ describe('describeDoiFailure', () => {
       summary:
         "Crossref didn't confirm the registration within 72 hours. Retry to submit it again.",
     };
-    expect(describeDoiFailure('no_deposit_after_72h')).toEqual(expected);
-    expect(describeDoiFailure('no_result_after_72h')).toEqual(expected);
+    expect(describeDoiFailure('no_deposit_after_horizon')).toEqual(expected);
+    expect(describeDoiFailure('no_result_after_horizon')).toEqual(expected);
   });
 
   it('explains a site that is no longer set up', () => {
