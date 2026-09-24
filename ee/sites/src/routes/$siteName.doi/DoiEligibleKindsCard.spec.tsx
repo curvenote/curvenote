@@ -61,8 +61,10 @@ describe('DoiEligibleKindsCard', () => {
     const html = render([
       { id: 'kind-blog', title: 'Blog', doiContentType: 'PREPRINT', locked: true },
     ]);
-    expect(html).toContain('aria-label="Read-only"');
-    expect(html).toContain('registered or being registered');
+    expect(html).toContain(
+      '<button type="button" aria-label="DOIs of this Submission Kind are registered or being registered, so its content type can&#x27;t change."',
+    );
+    expect(html).not.toContain('<p class="px-4 pt-2');
   });
 
   it('says so when the site has no kinds', () => {

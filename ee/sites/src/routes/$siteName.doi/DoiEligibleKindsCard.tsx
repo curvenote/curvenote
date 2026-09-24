@@ -16,6 +16,8 @@ import {
 import { LockedLabel } from './LockedLabel.js';
 
 const COLUMNS = 'grid grid-cols-2 gap-4 items-center px-4';
+const LOCKED_REASON =
+  "DOIs of this Submission Kind are registered or being registered, so its content type can't change.";
 
 type EligibleKindRowProps = {
   kind: EligibleKindDTO;
@@ -46,7 +48,9 @@ function EligibleKindRow({
             onCheckedChange={(checked) => onEligibleChange(checked === true)}
           />
           {kind.locked ? (
-            <LockedLabel htmlFor={checkboxId}>{kind.title}</LockedLabel>
+            <LockedLabel htmlFor={checkboxId} reason={LOCKED_REASON}>
+              {kind.title}
+            </LockedLabel>
           ) : (
             <label
               htmlFor={checkboxId}
@@ -73,12 +77,6 @@ function EligibleKindRow({
           </ui.SelectContent>
         </ui.Select>
       </div>
-      {kind.locked && (
-        <p className="px-4 pt-2 text-xs text-muted-foreground">
-          DOIs of this Submission Kind are registered or being registered, so its content type
-          can&apos;t change.
-        </p>
-      )}
     </li>
   );
 }
