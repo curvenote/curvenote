@@ -101,9 +101,9 @@ async function reschedulePoll({ prisma, row, payload, crossrefSubmissionId }: Re
 
 /**
  * Reads the result of one received deposit. A processed result settles the attempt; anything else
- * polls again later, until 72 h after the attempt started. The result is the job's doing, not the
- * Register click's, so its activity goes to the platform service account; the user who started
- * the registration may also be gone by the time Crossref answers.
+ * polls again later, until the horizon after the attempt started (`pastHorizon`). The result is
+ * the job's doing, not the Register click's, so its activity goes to the platform service account;
+ * the user who started the registration may also be gone by the time Crossref answers.
  */
 export async function crossrefPollHandler(ctx: Context, data: CreateJob) {
   const payload = parsePayload(data.payload);

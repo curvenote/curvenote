@@ -3,6 +3,8 @@
  * the DOI row's types and the timeline formatter can read it.
  */
 
+import { HORIZON_HOURS } from '../jobs/backoff.js';
+
 /** Stored when Crossref rejected a deposit without saying why. */
 export const CROSSREF_REJECTED = 'crossref_rejected';
 
@@ -14,8 +16,7 @@ export type DoiFailureReason = {
 
 const REJECTED = 'Crossref rejected the metadata. Fix the submission and retry.';
 const NOT_SUBMITTED = "We couldn't submit the registration to Crossref. No DOI was registered.";
-const NO_ANSWER =
-  "Crossref didn't confirm the registration within 72 hours. Retry to submit it again.";
+const NO_ANSWER = `Crossref didn't confirm the registration within ${HORIZON_HOURS} hours. Retry to submit it again.`;
 
 /**
  * `DoiDeposit.error` holds either a code our jobs wrote or, for a rejection, Crossref's message.
@@ -46,7 +47,7 @@ export type DoiFailureCode = keyof typeof BY_CODE;
 
 /** Looked up by an arbitrary stored string, not just a known `DoiFailureCode`: Crossref's own
  * rejection messages land here too, and must miss the lookup rather than index into it. */
-const lookup = BY_CODE as Partial<Record<string, DoiFailureReason>>;
+const lookup: Partial<Record<string, DoiFailureReason>> = BY_CODE;
 
 export function describeDoiFailure(error: string | null): DoiFailureReason {
   if (!error) {

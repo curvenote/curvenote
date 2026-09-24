@@ -8,8 +8,12 @@ const DELAYS_MINUTES = [1, 2, 5, 10, 30];
 const POLL_DELAYS_MINUTES = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 5, 5, 10, 30];
 const CAP_MINUTES = 60;
 
-/** Past this long since the attempt started, a Crossref outage is no longer waited out. */
-const HORIZON_MS = 72 * 60 * 60 * 1000;
+/**
+ * Past this long since the attempt started, a Crossref outage is no longer waited out. Exported
+ * because the failure copy tells the user how long we waited.
+ */
+export const HORIZON_HOURS = 72;
+const HORIZON_MS = HORIZON_HOURS * 60 * 60 * 1000;
 
 function minutesFromNow(now: Date, minutes: number): string {
   return new Date(now.getTime() + minutes * 60_000).toISOString();

@@ -1,5 +1,6 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, expect, it } from 'vitest';
+import { HORIZON_HOURS } from '../jobs/backoff.js';
 import { describeDoiFailure } from './failure.js';
 
 describe('describeDoiFailure', () => {
@@ -24,10 +25,9 @@ describe('describeDoiFailure', () => {
     });
   });
 
-  it('explains the 72 hour limit for both the deposit and the result', () => {
+  it('explains the horizon for both the deposit and the result, in the hours the jobs wait', () => {
     const expected = {
-      summary:
-        "Crossref didn't confirm the registration within 72 hours. Retry to submit it again.",
+      summary: `Crossref didn't confirm the registration within ${HORIZON_HOURS} hours. Retry to submit it again.`,
     };
     expect(describeDoiFailure('no_deposit_after_horizon')).toEqual(expected);
     expect(describeDoiFailure('no_result_after_horizon')).toEqual(expected);
