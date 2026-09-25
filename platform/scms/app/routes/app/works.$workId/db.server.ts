@@ -89,9 +89,18 @@ export async function dbGetLinkedJobsByWorkVersionIds(
     },
   });
   const map: Record<string, LinkedJobWithStatus[]> = {};
+  const seenJobIds = new Set<string>();
+
+  const pushJob = (workVersionId: string, job: LinkedJobWithStatus) => {
+    if (seenJobIds.has(job.id)) return;
+    seenJobIds.add(job.id);
+    const list = map[workVersionId] ?? [];
+    list.push(job);
+    map[workVersionId] = list;
+  };
+
   for (const row of rows) {
-    const list = map[row.work_version_id] ?? [];
-    list.push({
+    pushJob(row.work_version_id, {
       id: row.job.id,
       status: row.job.status,
       job_type: row.job.job_type,
@@ -101,8 +110,49 @@ export async function dbGetLinkedJobsByWorkVersionIds(
       date_created: String(row.job.date_created),
       date_modified: String(row.job.date_modified),
     });
-    map[row.work_version_id] = list;
   }
+
+  // Converter jobs are linked when the handler starts; include QUEUED/early jobs by payload
+  // so timeline Retry / Generate PDF can reflect processing immediately after enqueue.
+  const converterJobs = await prisma.job.findMany({
+    where: {
+      job_type: 'CONVERTER_TASK',
+      OR: workVersionIds.map((workVersionId) => ({
+        payload: { path: ['work_version_id'], equals: workVersionId },
+      })),
+    },
+    select: {
+      id: true,
+      status: true,
+      job_type: true,
+      payload: true,
+      messages: true,
+      results: true,
+      date_created: true,
+      date_modified: true,
+    },
+  });
+
+  for (const job of converterJobs) {
+    const payload =
+      job.payload != null && typeof job.payload === 'object' && !Array.isArray(job.payload)
+        ? (job.payload as Record<string, unknown>)
+        : null;
+    const workVersionId =
+      typeof payload?.work_version_id === 'string' ? payload.work_version_id : null;
+    if (!workVersionId || !workVersionIds.includes(workVersionId)) continue;
+    pushJob(workVersionId, {
+      id: job.id,
+      status: job.status,
+      job_type: job.job_type,
+      payload: job.payload,
+      messages: job.messages,
+      results: job.results,
+      date_created: String(job.date_created),
+      date_modified: String(job.date_modified),
+    });
+  }
+
   return map;
 }
 

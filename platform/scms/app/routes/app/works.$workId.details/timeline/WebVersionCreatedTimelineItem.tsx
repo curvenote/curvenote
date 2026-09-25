@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useRef, type ReactNode } from 'react';
+import { Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Await, useFetcher, useRevalidator } from 'react-router';
 import { ExternalLink, Globe, InfoIcon, Loader2, RotateCcw } from 'lucide-react';
 import { DateWithPopover, TimelineItemPlain, useDeploymentConfig, ui } from '@curvenote/scms-core';
@@ -53,6 +53,8 @@ function WebVersionRow({
   }>();
   const revalidator = useRevalidator();
   const lastHandledRetryDataRef = useRef<unknown>(undefined);
+  /** Job id from a successful Retry — forces queued until that job appears in linkedJobs. */
+  const [optimisticJobId, setOptimisticJobId] = useState<string | null>(null);
 
   useEffect(() => {
     if (retryFetcher.state !== 'idle' || !retryFetcher.data) return;
@@ -64,38 +66,57 @@ function WebVersionRow({
       return;
     }
     if (d.success === true) {
+      if (typeof d.jobId === 'string') setOptimisticJobId(d.jobId);
       ui.toastInfo('Web conversion re-queued');
       revalidator.revalidate();
     }
   }, [retryFetcher.state, retryFetcher.data, revalidator]);
 
+  const latestJob = pickLatestWebConversionJob(linkedJobs);
+
+  useEffect(() => {
+    if (!optimisticJobId) return;
+    if (latestJob?.id === optimisticJobId) {
+      setOptimisticJobId(null);
+    }
+  }, [latestJob?.id, optimisticJobId]);
+
   const model = resolveWebConversionTimelineModel({
     available,
     versionDateCreated: dateCreated,
     versionDateModified: dateModified,
-    latestJob: pickLatestWebConversionJob(linkedJobs),
+    latestJob,
   });
 
-  if (!model) return null;
+  if (!model && !optimisticJobId) return null;
 
   const retryBusy = retryFetcher.state !== 'idle';
+  const forceQueued = optimisticJobId != null && latestJob?.id !== optimisticJobId;
+  const phase = forceQueued ? 'queued' : (model?.phase ?? 'queued');
+  const error = phase === 'failed' ? model?.error : undefined;
+  const canRetry = phase === 'failed';
+  const statusDateCreated = model?.dateCreated ?? dateCreated;
+  const statusDateModified = model?.dateModified ?? dateModified;
+
   const href =
     previewSignature != null
       ? buildWorkVersionPreviewHref(workVersionPreviewUrl, workVersionId, previewSignature)
       : null;
 
-  const message = model.phase === 'available' ? <>Web Version Created</> : <>Web Version</>;
+  const message = phase === 'available' ? <>Web Version Created</> : <>Web Version</>;
 
   let status: ReactNode = null;
-  if (model.phase === 'building') {
+  if (phase === 'queued') {
+    status = <span className="text-muted-foreground">queued</span>;
+  } else if (phase === 'building') {
     status = <span className="text-muted-foreground">building…</span>;
-  } else if (model.phase === 'failed') {
+  } else if (phase === 'failed') {
     status = (
       <span className="inline-flex items-center gap-1 text-destructive">
         <span>failed</span>
-        {model.error ? (
+        {error ? (
           <ui.SimpleTooltip
-            title={model.error}
+            title={error}
             side="top"
             sideOffset={6}
             delayDuration={200}
@@ -118,9 +139,9 @@ function WebVersionRow({
     <span className="inline-flex items-center gap-2">
       {status}
       <DateWithPopover
-        date={model.dateCreated}
-        dateCreated={model.dateCreated}
-        dateModified={model.dateModified}
+        date={statusDateCreated}
+        dateCreated={statusDateCreated}
+        dateModified={statusDateModified}
       />
     </span>
   );
@@ -135,7 +156,7 @@ function WebVersionRow({
           </a>
         </ui.Button>
       ) : null}
-      {model.canRetry ? (
+      {canRetry ? (
         <ui.Button
           type="button"
           variant="link"
@@ -177,7 +198,7 @@ function WebVersionRow({
 
 /**
  * Timeline row for MyST web preview lifecycle:
- * appears when conversion starts, shows building/failed status with Retry, and View when available.
+ * queued → building → failed (Retry) or available (View).
  */
 export function WebVersionCreatedTimelineItem({
   dateCreated,

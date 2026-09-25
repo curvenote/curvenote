@@ -1,8 +1,11 @@
 import { KnownJobTypes } from '@curvenote/scms-core';
 import type { LinkedJobWithStatus } from '../works.$workId/db.server';
 
-/** Job statuses that mean a web conversion is still in flight. */
-export const WEB_CONVERSION_IN_FLIGHT = new Set(['QUEUED', 'RUNNING']);
+/** Job statuses that mean the conversion is waiting to start. */
+export const WEB_CONVERSION_QUEUED = new Set(['QUEUED', 'SCHEDULED']);
+
+/** Job statuses that mean the conversion is actively running. */
+export const WEB_CONVERSION_RUNNING = new Set(['RUNNING']);
 
 /** Job statuses that mean the latest attempt failed. */
 export const WEB_CONVERSION_FAILED = new Set(['FAILED', 'CANCELLED']);
@@ -48,7 +51,7 @@ export function webConversionJobError(job: LinkedJobWithStatus): string | undefi
   return undefined;
 }
 
-export type WebConversionTimelinePhase = 'available' | 'building' | 'failed';
+export type WebConversionTimelinePhase = 'available' | 'queued' | 'building' | 'failed';
 
 export type WebConversionTimelineModel = {
   phase: WebConversionTimelinePhase;
@@ -71,7 +74,16 @@ export function resolveWebConversionTimelineModel(opts: {
 }): WebConversionTimelineModel | null {
   const { available, versionDateCreated, versionDateModified, latestJob } = opts;
 
-  if (latestJob && WEB_CONVERSION_IN_FLIGHT.has(latestJob.status)) {
+  if (latestJob && WEB_CONVERSION_QUEUED.has(latestJob.status)) {
+    return {
+      phase: 'queued',
+      dateCreated: latestJob.date_created,
+      dateModified: latestJob.date_modified,
+      canRetry: false,
+    };
+  }
+
+  if (latestJob && WEB_CONVERSION_RUNNING.has(latestJob.status)) {
     return {
       phase: 'building',
       dateCreated: latestJob.date_created,

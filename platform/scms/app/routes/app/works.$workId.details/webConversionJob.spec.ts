@@ -62,7 +62,7 @@ describe('webConversionJob', () => {
     ).toBe('Site build did not produce config.json');
   });
 
-  it('resolves building / failed / available / hidden phases', () => {
+  it('resolves queued / building / failed / available phases', () => {
     expect(
       resolveWebConversionTimelineModel({
         available: false,
@@ -78,6 +78,15 @@ describe('webConversionJob', () => {
         versionDateCreated: 'a',
         versionDateModified: 'b',
         latestJob: job({ id: 'q', status: 'QUEUED' }),
+      })?.phase,
+    ).toBe('queued');
+
+    expect(
+      resolveWebConversionTimelineModel({
+        available: false,
+        versionDateCreated: 'a',
+        versionDateModified: 'b',
+        latestJob: job({ id: 'r', status: 'RUNNING' }),
       })?.phase,
     ).toBe('building');
 
