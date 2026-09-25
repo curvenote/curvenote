@@ -1,5 +1,17 @@
 # @curvenote/scms-sites-ext
 
+## 0.28.1
+
+### Patch Changes
+
+- [#1106](https://github.com/curvenote/curvenote/pull/1106) [`c9ea28a`](https://github.com/curvenote/curvenote/commit/c9ea28a6f57a47331f424ba214e53d4f778af89c) Thanks [@agutierrezgit](https://github.com/agutierrezgit)! - Declare `myst-to-jats` as a direct dependency so `build:scms` builds it. `crossref-utils-sdk` imports
+  it, and in the monorepo it resolves to the workspace package, which Turbo did not build because no
+  workspace package depended on it.
+- Updated dependencies []:
+  - @curvenote/scms-core@0.28.1
+  - @curvenote/scms-server@0.28.1
+  - @curvenote/scms-db@0.28.1
+
 ## 0.28.0
 
 ### Minor Changes

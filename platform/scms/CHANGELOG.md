@@ -1,5 +1,19 @@
 # @curvenote/scms
 
+## 0.28.1
+
+### Patch Changes
+
+- [#1108](https://github.com/curvenote/curvenote/pull/1108) [`8ad5cfc`](https://github.com/curvenote/curvenote/commit/8ad5cfc021713757c9e6e30a70e42041afe14a45) Thanks [@agutierrezgit](https://github.com/agutierrezgit)! - Bundle `crossref-utils-sdk`, `myst-to-jats`, `myst-transforms` and `katex` into the SCMS server build.
+  `myst-transforms` imports katex's raw ESM `mhchem` source, which Vercel's Node runtime loaded as
+  CommonJS and crashed on at startup.
+- Updated dependencies [[`c9ea28a`](https://github.com/curvenote/curvenote/commit/c9ea28a6f57a47331f424ba214e53d4f778af89c)]:
+  - @curvenote/scms-sites-ext@0.28.1
+  - @curvenote/scms-core@0.28.1
+  - @curvenote/scms-server@0.28.1
+  - @curvenote/scms-db@0.28.1
+  - @curvenote/scms-doc-preview@0.28.1
+
 ## 0.28.0
 
 ### Patch Changes
