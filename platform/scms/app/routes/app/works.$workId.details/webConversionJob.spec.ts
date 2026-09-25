@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import type { LinkedJobWithStatus } from '../works.$workId/db.server';
 import {
-  isMystCurvenoteWebJob,
+  isWebConversionJob,
   pickLatestWebConversionJob,
   resolveWebConversionTimelineModel,
   webConversionJobError,
@@ -13,7 +13,7 @@ function job(
 ): LinkedJobWithStatus {
   return {
     job_type: 'CONVERTER_TASK',
-    payload: { conversion_type: 'myst-curvenote-web', target: 'web' },
+    payload: { target: 'web' },
     messages: [],
     results: null,
     date_created: '2026-09-23T10:00:00.000Z',
@@ -23,10 +23,19 @@ function job(
 }
 
 describe('webConversionJob', () => {
-  it('identifies myst-curvenote-web jobs and ignores pdf converter jobs', () => {
-    expect(isMystCurvenoteWebJob(job({ id: 'w1', status: 'FAILED' }))).toBe(true);
+  it('identifies web-target converter jobs and ignores pdf converter jobs', () => {
+    expect(isWebConversionJob(job({ id: 'w1', status: 'FAILED' }))).toBe(true);
     expect(
-      isMystCurvenoteWebJob(
+      isWebConversionJob(
+        job({
+          id: 'legacy',
+          status: 'FAILED',
+          payload: { conversion_type: 'myst-curvenote-web', target: 'web' },
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      isWebConversionJob(
         job({
           id: 'p1',
           status: 'FAILED',

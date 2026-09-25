@@ -197,7 +197,7 @@ function WebVersionRow({
 }
 
 /**
- * Timeline row for MyST web preview lifecycle:
+ * Timeline row for web preview lifecycle (converter jobs with target=web):
  * queued → building → failed (Retry) or available (View).
  */
 export function WebVersionCreatedTimelineItem({

@@ -15,22 +15,20 @@ function payloadRecord(payload: unknown): Record<string, unknown> | null {
   return payload as Record<string, unknown>;
 }
 
-/** True when a linked job is a MyST → web site conversion. */
-export function isMystCurvenoteWebJob(job: LinkedJobWithStatus): boolean {
+/** True when a linked job is a converter task targeting web. */
+export function isWebConversionJob(job: LinkedJobWithStatus): boolean {
   if (job.job_type !== KnownJobTypes.CONVERTER_TASK) return false;
   const payload = payloadRecord(job.payload);
-  if (!payload) return false;
-  if (payload.conversion_type === 'myst-curvenote-web') return true;
-  return payload.target === 'web' && payload.conversion_type == null;
+  return payload?.target === 'web';
 }
 
 /**
- * Latest myst-curvenote-web converter job for a work version (by date_created desc).
+ * Latest web-target converter job for a work version (by date_created desc).
  */
 export function pickLatestWebConversionJob(
   jobs: LinkedJobWithStatus[],
 ): LinkedJobWithStatus | undefined {
-  const webJobs = jobs.filter(isMystCurvenoteWebJob);
+  const webJobs = jobs.filter(isWebConversionJob);
   if (webJobs.length === 0) return undefined;
   return [...webJobs].sort((a, b) => b.date_created.localeCompare(a.date_created))[0];
 }
