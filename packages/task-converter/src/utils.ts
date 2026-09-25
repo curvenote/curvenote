@@ -2,12 +2,13 @@
  * Shared utilities for conversion handlers: subprocess runner, file download, filename helpers.
  */
 
-import { createWriteStream, existsSync } from 'node:fs';
-import http from 'node:http';
-import https from 'node:https';
+import { createWriteStream } from 'node:fs';
+import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { spawn } from 'node:child_process';
+import { dockerAwareFetch } from '@curvenote/scms-tasks';
 import type { FileMetadataSectionItem } from './payload.js';
 
 export const DEFAULT_EXPORT_FILENAME = 'document.pdf';
@@ -74,9 +75,8 @@ export function safeDocxBasename(
  * tmpFolder should be an absolute path (e.g. path.resolve(tmpFolder)).
  * Throws if signedUrl is missing or download fails.
  *
- * Local Docker: SCMS signs MinIO URLs as http://127.0.0.1:9000/... which is unreachable
- * from the converter container. Rewrite the connect host to host.docker.internal while
- * keeping Host: 127.0.0.1:9000 so the SigV4 signature still validates.
+ * Local Docker: uses dockerAwareFetch so MinIO signed URLs on 127.0.0.1 remain valid
+ * while connecting via host.docker.internal.
  */
 export async function downloadFile(
   fileEntry: FileMetadataSectionItem & { pathKey?: string },
@@ -104,54 +104,21 @@ export async function downloadFile(
   return dest;
 }
 
-function shouldRewriteLocalhostForContainer(): boolean {
-  if (process.env.TASK_CONVERTER_REWRITE_LOCALHOST === '0') return false;
-  if (process.env.TASK_CONVERTER_REWRITE_LOCALHOST === '1') return true;
-  try {
-    return existsSync('/.dockerenv');
-  } catch {
-    return false;
-  }
-}
-
 /**
- * Fetch a signed URL to disk, rewriting localhost → host.docker.internal when in Docker.
+ * Fetch a signed URL to disk via dockerAwareFetch (shared host-rewrite logic).
  */
 export async function downloadSignedUrlToFile(signedUrl: string, dest: string): Promise<void> {
-  const parsed = new URL(signedUrl);
-  const headers: http.OutgoingHttpHeaders = {};
-  let hostname = parsed.hostname;
-  const port = parsed.port || (parsed.protocol === 'https:' ? '443' : '80');
-
-  if (
-    shouldRewriteLocalhostForContainer() &&
-    (parsed.hostname === '127.0.0.1' || parsed.hostname === 'localhost')
-  ) {
-    headers.host = parsed.host;
-    hostname = process.env.TASK_CONVERTER_HOST_GATEWAY ?? 'host.docker.internal';
+  const response = await dockerAwareFetch(signedUrl);
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status} ${response.statusText}`.trim());
   }
-
-  const lib = parsed.protocol === 'https:' ? https : http;
-  const response = await new Promise<http.IncomingMessage>((resolve, reject) => {
-    const req = lib.request(
-      {
-        protocol: parsed.protocol,
-        hostname,
-        port,
-        path: `${parsed.pathname}${parsed.search}`,
-        method: 'GET',
-        headers,
-      },
-      resolve,
+  const body = response.body;
+  if (body) {
+    await pipeline(
+      Readable.fromWeb(body as Parameters<typeof Readable.fromWeb>[0]),
+      createWriteStream(dest),
     );
-    req.on('error', reject);
-    req.end();
-  });
-
-  if ((response.statusCode ?? 0) < 200 || (response.statusCode ?? 0) >= 300) {
-    response.resume();
-    throw new Error(`HTTP ${response.statusCode} ${response.statusMessage ?? ''}`.trim());
+    return;
   }
-
-  await pipeline(response, createWriteStream(dest));
+  await writeFile(dest, Buffer.from(await response.arrayBuffer()));
 }

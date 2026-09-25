@@ -13,9 +13,7 @@ function job(
 ): LinkedJobWithStatus {
   return {
     job_type: 'CONVERTER_TASK',
-    payload: { target: 'web' },
-    messages: [],
-    results: null,
+    isWebConversion: true,
     date_created: '2026-09-23T10:00:00.000Z',
     date_modified: '2026-09-23T10:01:00.000Z',
     ...partial,
@@ -28,18 +26,10 @@ describe('webConversionJob', () => {
     expect(
       isWebConversionJob(
         job({
-          id: 'legacy',
-          status: 'FAILED',
-          payload: { conversion_type: 'myst-curvenote-web', target: 'web' },
-        }),
-      ),
-    ).toBe(true);
-    expect(
-      isWebConversionJob(
-        job({
           id: 'p1',
           status: 'FAILED',
-          payload: { conversion_type: 'docx-pd-curvenote-pdf', target: 'pdf' },
+          isWebConversion: undefined,
+          job_type: 'CONVERTER_TASK',
         }),
       ),
     ).toBe(false);
@@ -53,19 +43,19 @@ describe('webConversionJob', () => {
         id: 'pdf',
         status: 'FAILED',
         date_created: '2026-09-23T12:00:00.000Z',
-        payload: { conversion_type: 'docx-pd-curvenote-pdf', target: 'pdf' },
+        isWebConversion: undefined,
       }),
     ]);
     expect(latest?.id).toBe('new');
   });
 
-  it('prefers last job message for error text', () => {
+  it('prefers sanitized webError from the server', () => {
     expect(
       webConversionJobError(
         job({
           id: 'f1',
           status: 'FAILED',
-          messages: ['step 1', 'Site build did not produce config.json'],
+          webError: 'Site build did not produce config.json',
         }),
       ),
     ).toBe('Site build did not produce config.json');
@@ -103,7 +93,7 @@ describe('webConversionJob', () => {
       available: false,
       versionDateCreated: 'a',
       versionDateModified: 'b',
-      latestJob: job({ id: 'f', status: 'FAILED', messages: ['boom'] }),
+      latestJob: job({ id: 'f', status: 'FAILED', webError: 'boom' }),
     });
     expect(failed?.phase).toBe('failed');
     expect(failed?.canRetry).toBe(true);

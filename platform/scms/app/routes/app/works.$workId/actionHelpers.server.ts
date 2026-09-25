@@ -145,6 +145,30 @@ export async function retryWebConversionAction(ctx: WorkContext, formData: FormD
     );
   }
 
+  // Avoid parallel builds to the same CDN key (stale page / direct POST).
+  const linked = await prisma.linkedJob.findMany({
+    where: { work_version_id: workVersionId },
+    include: {
+      job: {
+        select: { id: true, status: true, job_type: true, payload: true },
+      },
+    },
+  });
+  const inFlight = linked.find((row) => {
+    if (row.job.job_type !== 'CONVERTER_TASK') return false;
+    if (!['QUEUED', 'SCHEDULED', 'RUNNING'].includes(row.job.status)) return false;
+    const payload =
+      row.job.payload != null &&
+      typeof row.job.payload === 'object' &&
+      !Array.isArray(row.job.payload)
+        ? (row.job.payload as Record<string, unknown>)
+        : null;
+    return payload?.target === 'web';
+  });
+  if (inFlight) {
+    return data({ success: true, jobId: inFlight.job.id, alreadyInFlight: true });
+  }
+
   try {
     const jobId = uuidv7();
     const result = await enqueueAndDispatchJob({

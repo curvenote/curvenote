@@ -10,16 +10,9 @@ export const WEB_CONVERSION_RUNNING = new Set(['RUNNING']);
 /** Job statuses that mean the latest attempt failed. */
 export const WEB_CONVERSION_FAILED = new Set(['FAILED', 'CANCELLED']);
 
-function payloadRecord(payload: unknown): Record<string, unknown> | null {
-  if (payload == null || typeof payload !== 'object' || Array.isArray(payload)) return null;
-  return payload as Record<string, unknown>;
-}
-
-/** True when a linked job is a converter task targeting web. */
+/** True when a linked job is a converter task targeting web (flag set server-side). */
 export function isWebConversionJob(job: LinkedJobWithStatus): boolean {
-  if (job.job_type !== KnownJobTypes.CONVERTER_TASK) return false;
-  const payload = payloadRecord(job.payload);
-  return payload?.target === 'web';
+  return job.job_type === KnownJobTypes.CONVERTER_TASK && job.isWebConversion === true;
 }
 
 /**
@@ -33,17 +26,9 @@ export function pickLatestWebConversionJob(
   return [...webJobs].sort((a, b) => b.date_created.localeCompare(a.date_created))[0];
 }
 
-/** Best-effort error string from a failed/cancelled converter job. */
+/** Public error string for a failed/cancelled web conversion (sanitized on the server). */
 export function webConversionJobError(job: LinkedJobWithStatus): string | undefined {
-  const messages = Array.isArray(job.messages) ? job.messages : [];
-  const lastMessage =
-    messages.length > 0 ? String(messages[messages.length - 1]).trim() : undefined;
-  if (lastMessage) return lastMessage;
-
-  const results = payloadRecord(job.results);
-  const fromResults = results?.error;
-  if (typeof fromResults === 'string' && fromResults.trim()) return fromResults.trim();
-
+  if (typeof job.webError === 'string' && job.webError.trim()) return job.webError.trim();
   if (job.status === 'CANCELLED') return 'Web conversion was cancelled.';
   if (job.status === 'FAILED') return 'Web conversion failed.';
   return undefined;

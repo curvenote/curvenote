@@ -1,6 +1,7 @@
 import type { EnqueueJobParams, EnqueueJobResult } from '@curvenote/scms-core';
 import { KnownJobTypes } from '@curvenote/scms-core';
 import { JobStatus } from '@curvenote/scms-db';
+import { uuidv7 } from 'uuidv7';
 import { getPrismaClient } from '../../prisma.server.js';
 import { dispatchJobWithHandshake } from './dispatchJob.server.js';
 import { ensureJobRow } from './ensureJobRow.server.js';
@@ -11,6 +12,8 @@ const CLI_TRACKED_JOB_TYPES: ReadonlySet<string> = new Set([KnownJobTypes.CLI_CH
 
 /**
  * Insert parent (QUEUED) + optional BLOCKED dependents, mint handshake, dispatch parent only.
+ * Converter tasks with `payload.work_version_id` are linked at enqueue so QUEUED jobs
+ * appear on the work timeline without scanning Job.payload JSONB.
  */
 export async function enqueueAndDispatchJob(params: EnqueueJobParams): Promise<EnqueueJobResult> {
   const prisma = await getPrismaClient();
@@ -35,6 +38,11 @@ export async function enqueueAndDispatchJob(params: EnqueueJobParams): Promise<E
   const nowIso = new Date().toISOString();
   const isFutureScheduled = Boolean(params.scheduled_at && params.scheduled_at > nowIso);
   const parentStatus = isFutureScheduled ? JobStatus.SCHEDULED : JobStatus.QUEUED;
+  const converterWorkVersionId =
+    params.job_type === KnownJobTypes.CONVERTER_TASK &&
+    typeof params.payload?.work_version_id === 'string'
+      ? params.payload.work_version_id
+      : null;
 
   await prisma.$transaction(async (tx) => {
     await ensureJobRow(
@@ -50,6 +58,18 @@ export async function enqueueAndDispatchJob(params: EnqueueJobParams): Promise<E
       parentStatus,
       tx,
     );
+
+    if (converterWorkVersionId) {
+      await tx.linkedJob.create({
+        data: {
+          id: uuidv7(),
+          date_created: nowIso,
+          job_id: params.job_id,
+          work_version_id: converterWorkVersionId,
+        },
+        select: { id: true },
+      });
+    }
 
     for (const dep of dependents) {
       await ensureJobRow(

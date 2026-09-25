@@ -157,15 +157,23 @@ export async function converterTaskHandler(ctx: Context, data: CreateJob) {
   }
   rollingLog.push(rollingLogEntry('job loaded', job.id));
 
-  await prisma.linkedJob.create({
-    data: {
-      id: uuidv7(),
-      date_created: job.date_created,
-      job_id: job.id,
-      work_version_id: payload.work_version_id,
-    },
+  // Prefer linking at enqueue (QUEUED visible immediately). Keep create-if-missing for
+  // legacy/direct dispatches that skipped enqueueAndDispatchJob.
+  const existingLink = await prisma.linkedJob.findFirst({
+    where: { job_id: job.id },
     select: { id: true },
   });
+  if (!existingLink) {
+    await prisma.linkedJob.create({
+      data: {
+        id: uuidv7(),
+        date_created: job.date_created,
+        job_id: job.id,
+        work_version_id: payload.work_version_id,
+      },
+      select: { id: true },
+    });
+  }
 
   const workVersionPayload = workVersionToPayload(workVersionRow);
   if (workVersionPayload.metadata) {
