@@ -4,7 +4,16 @@ import type { Prisma, WorkVersion } from '@curvenote/scms-db';
 import type { CheckServiceRunRow } from './checkServiceRun.shared';
 import { isCheckServiceRunSupersededByRetry } from './checkServiceRun.shared';
 
-export type LinkedJobWithStatus = { id: string; status: string };
+export type LinkedJobWithStatus = {
+  id: string;
+  status: string;
+  job_type: string;
+  payload: unknown;
+  messages: unknown;
+  results: unknown;
+  date_created: string;
+  date_modified: string;
+};
 
 export type { CheckServiceRunRow } from './checkServiceRun.shared';
 export { isCheckServiceRunSupersededByRetry } from './checkServiceRun.shared';
@@ -64,12 +73,34 @@ export async function dbGetLinkedJobsByWorkVersionIds(
   const prisma = await getPrismaClient();
   const rows = await prisma.linkedJob.findMany({
     where: { work_version_id: { in: workVersionIds } },
-    include: { job: { select: { id: true, status: true } } },
+    include: {
+      job: {
+        select: {
+          id: true,
+          status: true,
+          job_type: true,
+          payload: true,
+          messages: true,
+          results: true,
+          date_created: true,
+          date_modified: true,
+        },
+      },
+    },
   });
   const map: Record<string, LinkedJobWithStatus[]> = {};
   for (const row of rows) {
     const list = map[row.work_version_id] ?? [];
-    list.push({ id: row.job.id, status: row.job.status });
+    list.push({
+      id: row.job.id,
+      status: row.job.status,
+      job_type: row.job.job_type,
+      payload: row.job.payload,
+      messages: row.job.messages,
+      results: row.job.results,
+      date_created: String(row.job.date_created),
+      date_modified: String(row.job.date_modified),
+    });
     map[row.work_version_id] = list;
   }
   return map;

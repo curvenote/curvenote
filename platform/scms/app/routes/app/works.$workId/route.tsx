@@ -70,7 +70,7 @@ import type { WorkVersionContentCardData, WorkVersionForDetailsClient } from './
 import { extensions } from '../../../extensions/client';
 import { extensions as serverExtensions } from '../../../extensions/server';
 import { WORK_ROUTE_CONTENT_CLASS } from './workRouteLayout';
-import { exportToPdfAction } from './actionHelpers.server';
+import { exportToPdfAction, retryWebConversionAction } from './actionHelpers.server';
 import {
   canUserSubmitToSite,
   getSubmitToSiteLatestVersionPolicyError,
@@ -88,6 +88,7 @@ const WorkActionIntentSchema = zfd.formData({
   intent: zfd.text(
     z.enum([
       'export-to-pdf',
+      'retry-web-conversion',
       'get-drafts-for-work',
       'create-new-version',
       'delete-draft',
@@ -500,6 +501,10 @@ export async function action(args: ActionFunctionArgs) {
     return exportToPdfAction(ctx, formData);
   }
 
+  if (intent === 'retry-web-conversion') {
+    return retryWebConversionAction(ctx, formData);
+  }
+
   return data({ error: { type: 'general' as const, message: 'Unknown intent' } }, { status: 400 });
 }
 
@@ -634,10 +639,7 @@ export const loader = async (args: LoaderFunctionArgs) => {
     },
   );
 
-  const hasWebArticleGeneration = userHasScope(
-    ctx.user,
-    scopes.app.works.webArticleGeneration,
-  );
+  const hasWebArticleGeneration = userHasScope(ctx.user, scopes.app.works.webArticleGeneration);
   const webVersionPreviewSignatures: Record<string, string> = {};
   if (hasWebArticleGeneration) {
     for (const version of versionsForClient) {
