@@ -72,7 +72,7 @@ services:
 
   # Local converter worker. SCMS posts jobs to http://127.0.0.1:8080/ in development.
   # Image is built on first `bun run dx:up` if missing (see scripts/ensure-task-converter-image.sh).
-  # Rebuild explicitly: bun run db:rebuild:converter
+  # Rebuild explicitly: bun run dx:rebuild:converter
   task-converter:
     image: task-converter-local
     container_name: scms-task-converter

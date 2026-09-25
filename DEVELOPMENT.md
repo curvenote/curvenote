@@ -169,7 +169,7 @@ Full detail: [`docs/storage/dx-local.md`](docs/storage/dx-local.md).
 | `bun run db:down:clean` | Stop and **delete** Postgres + MinIO volumes |
 | `bun run db:logs` | Follow Postgres + MinIO + converter logs |
 | `bun run db:rebuild` | Wipe volumes, rebuild Postgres image, bring stack up (no DB seed) |
-| `bun run db:rebuild:converter` | Rebuild task-converter image and recreate container |
+| `bun run dx:rebuild:converter` | Rebuild task-converter image and recreate container |
 | `bun run db:studio` | Prisma Studio |
 | `bun run storage:use-minio` | Point development + secrets app-config at local MinIO |
 | `bun run storage:use-gcp` | Point development app-config at shared GCP |
