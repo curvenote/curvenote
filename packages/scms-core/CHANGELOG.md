@@ -1,5 +1,45 @@
 # @curvenote/scms-core
 
+## 0.28.0
+
+### Minor Changes
+
+- [#1099](https://github.com/curvenote/curvenote/pull/1099) [`3a0c253`](https://github.com/curvenote/curvenote/commit/3a0c253670582c49d2a04fc08f6338d2f3653420) Thanks [@agutierrezgit](https://github.com/agutierrezgit)! - Choose which Submission Kinds can register DOIs, and as what: Site > DOI Registration gains an
+  Eligible Submission Kinds card (Preprint for now) and a read-only Versioning policy card. Register
+  and Retry refuse submissions of a kind that is not eligible, and every existing kind starts not
+  eligible, so a site admin enables a kind before its submissions can register. Adds
+  `SubmissionKind.doi_content_type`, `DoiRegistration.content_type` (backfilled to `PREPRINT`), and
+  `DOI_CONTENT_TYPE` / `isDoiContentType` in scms-core (CN-2589).
+
+- [#1096](https://github.com/curvenote/curvenote/pull/1096) [`a0a1436`](https://github.com/curvenote/curvenote/commit/a0a14367e750a3a306bba5714f0f67fb2d4aa4d2) Thanks [@agutierrezgit](https://github.com/agutierrezgit)! - Add the DOI registration foundation: `DoiRegistration`, `DoiDeposit` and `Submission.doi`,
+  registration statuses and Crossref job types, a Crossref deposit and result client in the sites
+  extension, DOI resolution through `Submission.doi` before work DOIs (also shown as the DOI in the
+  site-work DTO), and a guard that keeps a Site's DOI setup from being unlinked or reset while it has
+  registered DOIs.
+
+- [#1084](https://github.com/curvenote/curvenote/pull/1084) [`b37915e`](https://github.com/curvenote/curvenote/commit/b37915e49a5de2bad6016a8b6a07daa8f95651fc) Thanks [@agutierrezgit](https://github.com/agutierrezgit)! - Add the site DOI configuration foundation: the `SiteDoiConfig` model, `site:doi`
+  scopes for admins and members, Crossref config, and a Crossref client in the sites
+  extension that looks up prefix owners and checks a depositor role.
+
+### Patch Changes
+
+- [#1099](https://github.com/curvenote/curvenote/pull/1099) [`749e4a3`](https://github.com/curvenote/curvenote/commit/749e4a36cd81e64c3b9591d807ecea26a8d5be23) Thanks [@agutierrezgit](https://github.com/agutierrezgit)! - Show each step of a DOI registration in the submission DOI row: sending, waiting for Crossref,
+  registered (with Crossref's warning, if any), or unsuccessful with a readable reason and Retry. The
+  row refreshes itself while Crossref works, and the timeline shows the result with the same reason.
+  A DOI registered on the submission now wins over the work's DOI in the site submissions list and on
+  the work's submission page. The failed activity reads "DOI registration unsuccessful" (CN-2582).
+
+- [#1073](https://github.com/curvenote/curvenote/pull/1073) [`e63c0eb`](https://github.com/curvenote/curvenote/commit/e63c0eb50ceeea766c3c2317ecb5ffafe7007bbf) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add optional `JobRegistration.onJobPatch` hook invoked after `PATCH /api/v1/jobs/:jobId` so extension jobs can map worker updates onto metadata.
+
+- [#1087](https://github.com/curvenote/curvenote/pull/1087) [`c520f82`](https://github.com/curvenote/curvenote/commit/c520f82c12cd1dd6b6fd92f2b16fa4bbe57200c3) Thanks [@agutierrezgit](https://github.com/agutierrezgit)! - Add Site > DOI Registration: a site admin chooses Curvenote-managed registration or the
+  site's own Crossref prefix (Enterprise, behind `site.data.doiCustomPrefixEnabled`), and a
+  system admin links the Crossref role, which is validated against Crossref before the site
+  becomes active. Adds `api.crossref.prefix` and `api.crossref.role` to the app config. The
+  screen is gated per user by the `app:sites:doi:feature` scope, granted through a Role (e.g.
+  `doi-preview`).
+- Updated dependencies []:
+  - @curvenote/scms-db@0.28.0
+
 ## 0.27.0
 
 ### Patch Changes
