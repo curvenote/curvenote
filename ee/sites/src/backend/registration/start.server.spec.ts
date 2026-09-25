@@ -71,7 +71,7 @@ const creds = {
   role: 'curv',
   resourceUrlBase: 'https://example.com/doi',
 } as any;
-const published = { id: 'sv-1', work_version: { doi: null, work: { doi: null } } };
+const published = { id: 'sv-1' };
 
 let p: any;
 let tx: any;
@@ -146,24 +146,8 @@ describe('startRegistration: reads', () => {
     expectNothingWritten();
   });
 
-  it.each([
-    [
-      'work_version.doi',
-      {
-        doi: null,
-        versions: [{ ...published, work_version: { doi: '10.1/x', work: { doi: null } } }],
-      },
-    ],
-    [
-      'work.doi',
-      {
-        doi: null,
-        versions: [{ ...published, work_version: { doi: null, work: { doi: '10.1/x' } } }],
-      },
-    ],
-    ['submission.doi', { doi: '10.1/x', versions: [published] }],
-  ])('refuses with 409 when the work already has a DOI (%s)', async (_, submission) => {
-    p.submission.findFirst.mockResolvedValue({ id: 'sub-1', ...submission });
+  it('refuses with 409 when the submission already has a DOI', async () => {
+    p.submission.findFirst.mockResolvedValue({ id: 'sub-1', doi: '10.1/x', versions: [published] });
 
     expect(await run()).toEqual({
       ok: false,
@@ -172,6 +156,16 @@ describe('startRegistration: reads', () => {
     });
     expect(mocks.assembleDeposit).not.toHaveBeenCalled();
     expectNothingWritten();
+  });
+
+  it('registers when only the work arrived with a DOI', async () => {
+    p.submission.findFirst.mockResolvedValue({
+      id: 'sub-1',
+      doi: null,
+      versions: [{ ...published, work_version: { doi: '10.1/x', work: { doi: '10.1/y' } } }],
+    });
+
+    expect(await run()).toEqual({ ok: true, doi: DOI });
   });
 
   it.each([

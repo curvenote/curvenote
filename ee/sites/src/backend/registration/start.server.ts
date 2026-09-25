@@ -3,7 +3,6 @@ import {
   DOI_REGISTRATION_STATUS,
   KnownJobTypes,
   SITE_DOI_CONFIG_STATUS,
-  resolveSiteWorkDoi,
 } from '@curvenote/scms-core';
 import type { Context } from '@curvenote/scms-server';
 import { assembleDeposit } from '../deposit/assemble.server.js';
@@ -37,10 +36,7 @@ async function loadStart(
         where: { status: PUBLISHED },
         orderBy: { date_created: 'desc' },
         take: 1,
-        select: {
-          id: true,
-          work_version: { select: { doi: true, work: { select: { doi: true } } } },
-        },
+        select: { id: true },
       },
     },
   });
@@ -51,12 +47,9 @@ async function loadStart(
   if (!version) {
     return errors.NOT_PUBLISHED;
   }
-  const workDoi = resolveSiteWorkDoi({
-    submission: submission.doi,
-    workVersion: version.work_version.doi,
-    work: version.work_version.work.doi,
-  });
-  if (workDoi) {
+  // A DOI the work arrived with (a preprint's, say) can sit alongside the one the site registers,
+  // so only the submission's own DOI blocks a registration.
+  if (submission.doi) {
     return errors.HAS_DOI;
   }
   const existing = await deps.prisma.doiRegistration.findUnique({
