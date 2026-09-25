@@ -121,7 +121,7 @@ export async function action(args: ActionFunctionArgs) {
     return actionReactivateMagicLink(ctx, args, formData);
   } else if (formAction === 'magic-link-delete') {
     return actionDeleteMagicLink(ctx, args, formData);
-  } else if (formAction === 'register-doi') {
+  } else if (formAction === SUBMISSION_DETAIL_FORM_ACTIONS.registerDoi) {
     return actionRegisterDoi(ctx, args.params.submissionId!);
   }
 

@@ -2,6 +2,7 @@ import { AlertCircle, Loader2, RefreshCw } from 'lucide-react';
 import { ui } from '@curvenote/scms-core';
 import type { RegisterDoiFetcher } from './DoiRow.js';
 import type { DoiRegistrationView } from './types.js';
+import { SUBMISSION_DETAIL_FORM_ACTIONS } from './SubmissionDetails.utils.js';
 
 type RetryButtonProps = {
   fetcher: RegisterDoiFetcher;
@@ -11,7 +12,7 @@ function RetryButton({ fetcher }: RetryButtonProps) {
   const submitting = fetcher.state !== 'idle';
   return (
     <fetcher.Form method="post">
-      <input type="hidden" name="formAction" value="register-doi" />
+      <input type="hidden" name="formAction" value={SUBMISSION_DETAIL_FORM_ACTIONS.registerDoi} />
       <ui.Button type="submit" variant="secondary" size="sm" disabled={submitting}>
         <RefreshCw className={submitting ? 'animate-spin' : undefined} aria-hidden />
         Retry

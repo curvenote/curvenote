@@ -4,6 +4,7 @@ import { ui } from '@curvenote/scms-core';
 import type { DepositIssue, DepositSummary } from '../../backend/deposit/types.js';
 import { formatPublicationDate } from '../../publicationDateCalendar.js';
 import type { RegisterDoiFetcher } from './DoiRow.js';
+import { SUBMISSION_DETAIL_FORM_ACTIONS } from './SubmissionDetails.utils.js';
 
 type SectionProps = {
   title: string;
@@ -166,7 +167,11 @@ export function RegisterDoiDialog({
             </ui.Button>
           </ui.DialogClose>
           <fetcher.Form method="post">
-            <input type="hidden" name="formAction" value="register-doi" />
+            <input
+              type="hidden"
+              name="formAction"
+              value={SUBMISSION_DETAIL_FORM_ACTIONS.registerDoi}
+            />
             <ui.Button type="submit" disabled={submitting}>
               {submitting ? 'Registering…' : 'Register DOI'}
             </ui.Button>
