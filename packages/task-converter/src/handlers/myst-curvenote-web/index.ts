@@ -51,11 +51,7 @@ export const runMystCurvenoteWeb: ConversionHandler = async (ctx) => {
   }
 
   const sourcesPrefix = resolveMystWebSourcesPrefix(workVersion.metadata);
-  const packageFiles = listPackageFiles(
-    workVersion.metadata,
-    sourcesPrefix,
-    workVersion.cdn_key,
-  );
+  const packageFiles = listPackageFiles(workVersion.metadata, sourcesPrefix, workVersion.cdn_key);
 
   const hasManuscript = packageFiles.some((p) => p.rel === 'manuscript.md');
   const hasMystYml = packageFiles.some((p) => p.rel === 'myst.yml');
