@@ -3,7 +3,7 @@ import type { SecureContext } from '@curvenote/scms-server';
 import type { Prisma, WorkVersion } from '@curvenote/scms-db';
 import type { CheckServiceRunRow } from './checkServiceRun.shared';
 import { isCheckServiceRunSupersededByRetry } from './checkServiceRun.shared';
-import { isMystCurvenoteWebPayload } from '../works.$workId.details/webConversionJob';
+import { isWebConversionPayload } from './webConversion.shared';
 
 /**
  * Safe linked-job fields for the work details loader (sent to the browser).
@@ -15,7 +15,7 @@ export type LinkedJobWithStatus = {
   job_type: string;
   date_created: string;
   date_modified: string;
-  /** Derived server-side: myst-curvenote-web only (not Word-to-web). */
+  /** Derived server-side from payload.target === 'web' (any web conversion_type). */
   isWebConversion?: boolean;
   /** Sanitized error for failed/cancelled web conversion jobs only. */
   webError?: string;
@@ -64,7 +64,7 @@ function toLinkedJobClient(job: {
   date_modified: string | Date;
 }): LinkedJobWithStatus {
   const payload = payloadRecord(job.payload);
-  const isWebConversion = job.job_type === 'CONVERTER_TASK' && isMystCurvenoteWebPayload(payload);
+  const isWebConversion = job.job_type === 'CONVERTER_TASK' && isWebConversionPayload(payload);
   const base: LinkedJobWithStatus = {
     id: job.id,
     status: job.status,

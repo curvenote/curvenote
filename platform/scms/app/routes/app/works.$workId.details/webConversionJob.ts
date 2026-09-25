@@ -1,6 +1,15 @@
 import { KnownJobTypes } from '@curvenote/scms-core';
 import type { LinkedJobWithStatus } from '../works.$workId/db.server';
 
+export {
+  DEFAULT_WEB_CONVERSION_TYPE,
+  findInFlightWebConversionJob,
+  isWebConversionPayload,
+  resolveRetryWebConversionTypeFromLinkedJobs,
+  resolveWebConversionTypeForRetry,
+  WEB_CONVERSION_TYPES,
+} from '../works.$workId/webConversion.shared';
+
 /** Job statuses that mean the conversion is waiting to start. */
 export const WEB_CONVERSION_QUEUED = new Set(['QUEUED', 'SCHEDULED']);
 
@@ -10,26 +19,13 @@ export const WEB_CONVERSION_RUNNING = new Set(['RUNNING']);
 /** Job statuses that mean the latest attempt failed. */
 export const WEB_CONVERSION_FAILED = new Set(['FAILED', 'CANCELLED']);
 
-/**
- * True for the Foundry MyST → web pipeline (`myst-curvenote-web`), which is what
- * timeline Retry re-enqueues. Word → web (`docx-pd-curvenote-web`) also uses
- * `target: web` but must not be treated as that job.
- * Legacy rows with `target: web` and no conversion_type are included.
- */
-export function isMystCurvenoteWebPayload(payload: unknown): boolean {
-  if (payload == null || typeof payload !== 'object' || Array.isArray(payload)) return false;
-  const record = payload as Record<string, unknown>;
-  if (record.conversion_type === 'myst-curvenote-web') return true;
-  return record.target === 'web' && record.conversion_type == null;
-}
-
-/** True when the server flagged this linked job as myst-curvenote-web. */
+/** True when the server flagged this linked job as a web conversion (target=web). */
 export function isWebConversionJob(job: LinkedJobWithStatus): boolean {
   return job.job_type === KnownJobTypes.CONVERTER_TASK && job.isWebConversion === true;
 }
 
 /**
- * Latest myst-curvenote-web job for a work version (by date_created desc).
+ * Latest web-target converter job for a work version (by date_created desc).
  */
 export function pickLatestWebConversionJob(
   jobs: LinkedJobWithStatus[],

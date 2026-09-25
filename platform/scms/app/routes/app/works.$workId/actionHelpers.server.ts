@@ -2,7 +2,10 @@ import { data } from 'react-router';
 import { userHasScope, enqueueAndDispatchJob, getPrismaClient } from '@curvenote/scms-server';
 import type { WorkContext } from '@curvenote/scms-server';
 import { hasDocxInMetadata, scopes } from '@curvenote/scms-core';
-import { isMystCurvenoteWebPayload } from '../works.$workId.details/webConversionJob';
+import {
+  findInFlightWebConversionJob,
+  resolveRetryWebConversionTypeFromLinkedJobs,
+} from './webConversion.shared';
 import { z } from 'zod';
 import { zfd } from 'zod-form-data';
 import { uuidv7 } from 'uuidv7';
@@ -79,7 +82,8 @@ export const RetryWebConversionActionSchema = zfd.formData({
 });
 
 /**
- * Re-enqueue myst-curvenote-web for a work version (timeline Retry).
+ * Re-enqueue the latest web conversion pipeline for a work version (timeline Retry).
+ * Uses the failed job's conversion_type (Word-to-web vs Foundry MyST), not a fixed type.
  * Requires web-article-generation scope (same gate as the Web Version timeline row).
  */
 export async function retryWebConversionAction(ctx: WorkContext, formData: FormData) {
@@ -151,18 +155,16 @@ export async function retryWebConversionAction(ctx: WorkContext, formData: FormD
     where: { work_version_id: workVersionId },
     include: {
       job: {
-        select: { id: true, status: true, job_type: true, payload: true },
+        select: { id: true, status: true, job_type: true, payload: true, date_created: true },
       },
     },
   });
-  const inFlight = linked.find((row) => {
-    if (row.job.job_type !== 'CONVERTER_TASK') return false;
-    if (!['QUEUED', 'SCHEDULED', 'RUNNING'].includes(row.job.status)) return false;
-    return isMystCurvenoteWebPayload(row.job.payload);
-  });
+  const inFlight = findInFlightWebConversionJob(linked);
   if (inFlight) {
     return data({ success: true, jobId: inFlight.job.id, alreadyInFlight: true });
   }
+
+  const conversion_type = resolveRetryWebConversionTypeFromLinkedJobs(linked);
 
   try {
     const jobId = uuidv7();
@@ -172,7 +174,7 @@ export async function retryWebConversionAction(ctx: WorkContext, formData: FormD
       payload: {
         work_version_id: workVersionId,
         target: 'web',
-        conversion_type: 'myst-curvenote-web',
+        conversion_type,
       },
       invoked_by_id: ctx.user?.id,
     });

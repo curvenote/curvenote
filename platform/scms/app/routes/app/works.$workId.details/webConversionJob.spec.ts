@@ -2,8 +2,8 @@
 import { describe, expect, it } from 'vitest';
 import type { LinkedJobWithStatus } from '../works.$workId/db.server';
 import {
-  isMystCurvenoteWebPayload,
   isWebConversionJob,
+  isWebConversionPayload,
   pickLatestWebConversionJob,
   resolveWebConversionTimelineModel,
   webConversionJobError,
@@ -22,20 +22,14 @@ function job(
 }
 
 describe('webConversionJob', () => {
-  it('treats only myst-curvenote-web as a web-version job', () => {
+  it('identifies any web-target payload as a web conversion', () => {
+    expect(isWebConversionPayload({ target: 'web', conversion_type: 'myst-curvenote-web' })).toBe(
+      true,
+    );
     expect(
-      isMystCurvenoteWebPayload({ target: 'web', conversion_type: 'myst-curvenote-web' }),
+      isWebConversionPayload({ target: 'web', conversion_type: 'docx-pd-curvenote-web' }),
     ).toBe(true);
-    expect(isMystCurvenoteWebPayload({ target: 'web' })).toBe(true);
-    expect(
-      isMystCurvenoteWebPayload({ target: 'web', conversion_type: 'docx-pd-curvenote-web' }),
-    ).toBe(false);
-    expect(
-      isMystCurvenoteWebPayload({ target: 'web', conversion_type: 'docx-pandoc-myst-web' }),
-    ).toBe(false);
-    expect(
-      isMystCurvenoteWebPayload({ target: 'pdf', conversion_type: 'docx-pd-curvenote-pdf' }),
-    ).toBe(false);
+    expect(isWebConversionPayload({ target: 'pdf' })).toBe(false);
   });
 
   it('identifies web-target converter jobs and ignores pdf converter jobs', () => {
