@@ -50,11 +50,7 @@ export function dbSetKindContentType(
 ) {
   return tx.submissionKind.update({
     where: { id: kindId, site_id: siteId },
-    data: {
-      doi_content_type: value,
-      date_modified: new Date().toISOString(),
-      occ: { increment: 1 },
-    },
+    data: { doi_content_type: value, date_modified: new Date().toISOString() },
     select: { id: true },
   });
 }

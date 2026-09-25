@@ -50,6 +50,8 @@ describe('updateKindMapping', () => {
       where: { id: 'kind-article', site_id: 'site-a' },
       data: { doi_content_type: 'PREPRINT' },
     });
+    // SubmissionKind.occ guards the `content` JSON; a plain column write leaves it alone.
+    expect(prisma.submissionKind.update.mock.calls[0][0].data).not.toHaveProperty('occ');
     expect(prisma.activity.create.mock.calls[0][0].data.data).toEqual({
       action: 'update-kind-mapping',
       config: expect.objectContaining({ status: 'ACTIVE' }),
