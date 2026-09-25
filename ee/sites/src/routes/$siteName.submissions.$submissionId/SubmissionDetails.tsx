@@ -14,6 +14,7 @@ import { Kinds } from './Kinds.js';
 import { buildUrl } from 'doi-utils';
 import { useLoaderData } from 'react-router';
 import { Collections } from './Collections.js';
+import { RegisterDoi } from './RegisterDoi.js';
 import { PublicationDate } from './PublicationDate.js';
 import { SubmissionTags } from './SubmissionTags.js';
 import type { SubmissionDetailPageData } from './loader.server.js';
@@ -115,6 +116,7 @@ export function SubmissionDetails({ baseUrl }: SubmissionDetailsProps) {
     slugs,
     collections,
     workflow,
+    doiReadiness,
   } = useLoaderData<SubmissionDetailPageData>();
 
   let activeVersionIndex = submissionVersions.findIndex(
@@ -131,6 +133,8 @@ export function SubmissionDetails({ baseUrl }: SubmissionDetailsProps) {
   const datePublished = submission.date_published;
 
   const doi = activeVersion.site_work.doi;
+  // Same public URL as the published-version banner.
+  const doiResolvesTo = `${baseUrl}/articles/${submission.slug ?? (published ?? activeVersion).site_work.id}`;
 
   const submissionCollectionMatch = collections.some((c) => c.id === submission.collection.id);
 
@@ -139,6 +143,12 @@ export function SubmissionDetails({ baseUrl }: SubmissionDetailsProps) {
   const slugSuggestion = getSlugSuggestion(site, activeVersion.site_work.doi);
 
   const canUpdate = clientCheckSiteScopes(userScopes, [scopes.site.submissions.update], site.name);
+  // Same gate as the DOI Registration menu item and page. clientCheckSiteScopes matches any
+  // listed scope, so each is checked on its own.
+  const canOpenDoiSetup =
+    clientCheckSiteScopes(userScopes, [scopes.site.doi.configure], site.name) &&
+    clientCheckSiteScopes(userScopes, [scopes.app.sites.doi.feature], site.name);
+  const doiSetupUrl = canOpenDoiSetup ? `/app/sites/${site.name}/doi` : undefined;
 
   const statusBanners = getStatusBanners({
     baseUrl,
@@ -229,6 +239,12 @@ export function SubmissionDetails({ baseUrl }: SubmissionDetailsProps) {
               {doi}
               <ExternalLink className="inline-block w-4 h-4 shrink-0" aria-hidden />
             </a>
+          ) : doiReadiness ? (
+            <RegisterDoi
+              readiness={doiReadiness}
+              resolvesTo={doiResolvesTo}
+              setupUrl={doiSetupUrl}
+            />
           ) : (
             <span className="text-sm text-muted-foreground">{emptyDetailValue()}</span>
           )}

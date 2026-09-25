@@ -12,11 +12,12 @@ const fakeFetch = (status: number, body: string) =>
     async (_url: string | URL | Request, _init?: RequestInit) => new Response(body, { status }),
   );
 const creds = {
-  host: 'https://test.crossref.org',
+  host: 'https://crossref.example.com',
   depositorEmail: 'doi@curvenote.com',
   password: 's3cret',
   prefix: '10.62329',
   role: 'curv',
+  resourceUrlBase: 'https://doi.example.com',
 };
 const input = { role: 'elms', fileName: 'CN-dep.b8d0b4aa.xml', xml: '<doi_batch/>' };
 
@@ -27,7 +28,7 @@ describe('deposit', () => {
       state: 'received',
     });
     const [url, init] = f.mock.calls[0];
-    expect(String(url)).toBe('https://test.crossref.org/servlet/deposit');
+    expect(String(url)).toBe('https://crossref.example.com/servlet/deposit');
     expect(init?.method).toBe('POST');
     const body = init?.body as FormData;
     expect(body.get('operation')).toBe('doMDUpload');

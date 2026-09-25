@@ -11,11 +11,12 @@ const fakeFetch = (status: number, body: string) =>
 const rejectingFetch = (error: Error) =>
   vi.fn(() => Promise.reject(error)) as unknown as typeof fetch;
 const creds = {
-  host: 'https://test.crossref.org',
+  host: 'https://crossref.example.com',
   depositorEmail: 'doi@curvenote.com',
   password: 's3cret',
   prefix: '10.62329',
   role: 'curv',
+  resourceUrlBase: 'https://doi.example.com',
 };
 
 describe('lookupPrefix', () => {
@@ -94,16 +95,24 @@ describe('crossrefCredentialsFromConfig', () => {
     expect(() => crossrefCredentialsFromConfig({ api: {} } as AppConfig)).toThrow(/api\.crossref/);
   });
 
-  test('strips a trailing slash from the host', () => {
+  test('strips a trailing slash from the host and the resource URL base', () => {
     const config = {
-      api: { crossref: { ...creds, host: 'https://test.crossref.org/' } },
+      api: {
+        crossref: {
+          ...creds,
+          host: 'https://crossref.example.com/',
+          resourceUrlBase: 'https://doi.example.com/',
+        },
+      },
     } as AppConfig;
-    expect(crossrefCredentialsFromConfig(config).host).toBe('https://test.crossref.org');
+    const parsed = crossrefCredentialsFromConfig(config);
+    expect(parsed.host).toBe('https://crossref.example.com');
+    expect(parsed.resourceUrlBase).toBe('https://doi.example.com');
   });
 
   test('names invalid fields without leaking the password', () => {
     const config = {
-      api: { crossref: { ...creds, host: 'test.crossref.org', depositorEmail: 'nope' } },
+      api: { crossref: { ...creds, host: 'crossref.example.com', depositorEmail: 'nope' } },
     } as AppConfig;
     let message = '';
     try {
@@ -118,7 +127,7 @@ describe('crossrefCredentialsFromConfig', () => {
 
   test('returns the Curvenote prefix and role', () => {
     const config = {
-      api: { crossref: { ...creds, host: 'https://test.crossref.org/' } },
+      api: { crossref: { ...creds, host: 'https://crossref.example.com/' } },
     } as unknown as AppConfig;
     expect(crossrefCredentialsFromConfig(config)).toMatchObject({
       prefix: '10.62329',

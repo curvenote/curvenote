@@ -1,0 +1,114 @@
+import { Suspense } from 'react';
+import type { ReactNode } from 'react';
+import { Await, Link } from 'react-router';
+import { AlertTriangle } from 'lucide-react';
+import type { DoiReadiness } from '../../backend/deposit/readiness.server.js';
+import type { DepositIssue } from '../../backend/deposit/types.js';
+import { RegisterDoiDialog } from './RegisterDoiDialog.js';
+import { describeDoiBlockers } from './RegisterDoi.utils.js';
+
+type BlockerProps = {
+  children: ReactNode;
+};
+
+function Blocker({ children }: BlockerProps) {
+  return (
+    <div className="flex gap-2 items-center">
+      <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" aria-hidden />
+      <p className="text-sm">{children}</p>
+    </div>
+  );
+}
+
+type BlockersProps = {
+  issues: DepositIssue[];
+  /** DOI Registration page; only for people who can configure it. */
+  setupUrl?: string;
+};
+
+function Blockers({ issues, setupUrl }: BlockersProps) {
+  const blockers = describeDoiBlockers(issues);
+  if (blockers.kind === 'site_not_active') {
+    return (
+      <Blocker>
+        DOIs are not set up for this site.
+        {setupUrl && (
+          <>
+            {' '}
+            <Link to={setupUrl} className="text-primary hover:underline">
+              Set up DOIs
+            </Link>
+          </>
+        )}
+      </Blocker>
+    );
+  }
+  return (
+    <div className="space-y-2">
+      {blockers.sentences.map((sentence) => (
+        <Blocker key={sentence}>{sentence}</Blocker>
+      ))}
+    </div>
+  );
+}
+
+type NoteProps = {
+  children: ReactNode;
+};
+
+function Note({ children }: NoteProps) {
+  return <span className="text-sm text-muted-foreground">{children}</span>;
+}
+
+type RegisterDoiStateProps = {
+  readiness: DoiReadiness;
+  resolvesTo: string;
+  setupUrl?: string;
+};
+
+function RegisterDoiState({ readiness, resolvesTo, setupUrl }: RegisterDoiStateProps) {
+  switch (readiness.kind) {
+    case 'ready':
+      return (
+        <RegisterDoiDialog
+          prefix={readiness.prefix}
+          summary={readiness.summary}
+          warnings={readiness.warnings}
+          resolvesTo={resolvesTo}
+        />
+      );
+    case 'blocked':
+      return <Blockers issues={readiness.issues} setupUrl={setupUrl} />;
+    case 'not_published':
+      return <Blocker>Publish this submission to register a DOI.</Blocker>;
+    case 'not_configured':
+      return <Note>DOI registration is not configured on this deployment.</Note>;
+    case 'unavailable':
+      return <Note>Could not check the DOI requirements. Reload the page to try again.</Note>;
+  }
+}
+
+type RegisterDoiProps = {
+  readiness: Promise<DoiReadiness>;
+  /** Public URL of the published work, where the DOI will point. */
+  resolvesTo: string;
+  /** DOI Registration page, linked when the site isn't set up; omit when the user can't open it. */
+  setupUrl?: string;
+};
+
+/** The DOI row when the work has no DOI yet. The check reads the CDN, so it streams in. */
+export function RegisterDoi({ readiness, resolvesTo, setupUrl }: RegisterDoiProps) {
+  const unavailable = (
+    <Note>Could not check the DOI requirements. Reload the page to try again.</Note>
+  );
+  return (
+    <Suspense fallback={<Note>Checking the DOI requirements…</Note>}>
+      {/* loadDoiReadiness never rejects; this covers the stream being cut off. */}
+      <Await resolve={readiness} errorElement={unavailable}>
+        {(resolved: DoiReadiness) => (
+          <RegisterDoiState readiness={resolved} resolvesTo={resolvesTo} setupUrl={setupUrl} />
+        )}
+      </Await>
+    </Suspense>
+  );
+}

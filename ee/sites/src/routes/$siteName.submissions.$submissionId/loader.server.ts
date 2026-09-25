@@ -1,13 +1,18 @@
 import type { TagDTO } from '@curvenote/common';
+import { scopes } from '@curvenote/scms-core';
 import type { Context, TimelineCheckServiceRunRow, Workflow } from '@curvenote/scms-core';
 import {
   createPreviewToken,
   getConfiguredWorkflow,
   resolveWorkVersionCdnMedia,
   sites,
+  userHasScope,
+  userHasSiteScope,
   type SiteContext,
   type WorkVersionCdnMedia,
 } from '@curvenote/scms-server';
+import { loadDoiReadiness } from '../../backend/deposit/readiness.server.js';
+import type { DoiReadiness } from '../../backend/deposit/readiness.server.js';
 import {
   dbGetSubmissionCheckServiceRunsByWorkVersionIds,
   dbGetSiteAppData,
@@ -52,7 +57,33 @@ export type SubmissionDetailPageData = {
   /** Active work version CDN config.json (null when no CDN); for MEDIA and upcoming sections. */
   activeVersionCdnConfig: WorkVersionCdnMedia['cdnConfig'];
   siteTags: TagDTO[];
+  /**
+   * Streamed, not awaited: the check reads the CDN. Null when the viewer lacks site:doi:read or
+   * the per-user DOI preview flag, or when the work already has a DOI.
+   */
+  doiReadiness: Promise<DoiReadiness> | null;
 };
+
+/**
+ * Starts the DOI readiness check without awaiting it, so the page streams it in. Null when the
+ * work already has a DOI or the viewer can't see DOI registration.
+ */
+function startDoiReadiness(
+  ctx: SiteContext,
+  submissionId: string,
+  activeVersion: SubmissionDetailVersion,
+): Promise<DoiReadiness> | null {
+  if (activeVersion.site_work.doi) {
+    return null;
+  }
+  const canSeeDoi =
+    userHasSiteScope(ctx.user, scopes.site.doi.read, ctx.site.id) &&
+    userHasScope(ctx.user, scopes.app.sites.doi.feature);
+  if (!canSeeDoi) {
+    return null;
+  }
+  return loadDoiReadiness(ctx, submissionId);
+}
 
 export async function loadSubmissionDetailPage(
   ctx: SiteContext,
@@ -137,5 +168,6 @@ export async function loadSubmissionDetailPage(
     mediaThumbnailUrl,
     activeVersionCdnConfig,
     siteTags,
+    doiReadiness: startDoiReadiness(ctx, submissionId, activeVersion),
   };
 }
