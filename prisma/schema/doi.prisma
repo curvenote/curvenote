@@ -40,6 +40,9 @@ model DoiRegistration {
   /// and doi-utils does not fold case, so generation is where case is fixed.
   doi           String       @unique
   prefix        String
+  /// What this DOI is registered as (DOI_CONTENT_TYPE in scms-core), taken from its kind when the
+  /// deposit started. It stays with the DOI when the kind's mapping or the submission's kind changes.
+  content_type  String
   /// SUBMITTING | REGISTERED | FAILED (constants in scms-core). Rows are created when a deposit
   /// starts, so the DRAFT default is legacy and unused.
   status        String       @default("DRAFT")

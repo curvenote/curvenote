@@ -31,6 +31,7 @@ describe('assembleDeposit', () => {
     expect(result.doi).toBe('10.62329/abcd1234');
     expect(result.xml).toContain('<doi_batch_id>batch-1</doi_batch_id>');
     expect(result.xml).toContain('<posted_content>');
+    expect(result.contentType).toBe('PREPRINT');
     expect(result.xml).toContain(
       '<resource content_version="vor">https://doi.example.com/10.62329/abcd1234</resource>',
     );

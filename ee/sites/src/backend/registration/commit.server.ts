@@ -6,6 +6,7 @@ import {
   SITE_DOI_CONFIG_STATUS,
   isDoiContentType,
 } from '@curvenote/scms-core';
+import type { DoiContentType } from '@curvenote/scms-core';
 import type { DoiTx } from '../doi/types.js';
 import { kindTitle } from '../kinds.utils.js';
 import { insertJobRow } from '../jobs/schedule.server.js';
@@ -33,12 +34,19 @@ async function lockActiveSite(tx: DoiTx, siteId: string) {
   return count === 1;
 }
 
-type CommitInput = { plan: Plan; depositId: string; xmlPath: string; userId: string };
+type CommitInput = {
+  plan: Plan;
+  depositId: string;
+  xmlPath: string;
+  /** What the XML at `xmlPath` registers the DOI as. */
+  contentType: DoiContentType;
+  userId: string;
+};
 
 /** The only write: registration SUBMITTING, attempt PENDING, job row and activity together. */
 export async function commitStart(
   tx: DoiTx,
-  { plan, depositId, xmlPath, userId }: CommitInput,
+  { plan, depositId, xmlPath, contentType, userId }: CommitInput,
 ): Promise<{ registrationId: string; jobId: string } | RegistrationFailure> {
   if (!(await lockActiveSite(tx, plan.siteId))) {
     return errors.NOT_ACTIVE;
@@ -50,8 +58,7 @@ export async function commitStart(
   if (site?.prefix !== plan.prefix) {
     return errors.PREFIX_CHANGED;
   }
-  // Saving the kind mapping bumps the same occ, so this read comes after any save that raced
-  // with the assembly and sees the kind as it is now.
+  // The kind is read again: its mapping may have changed while the deposit was assembled.
   const submission = await tx.submission.findUnique({
     where: { id: plan.submissionId },
     select: { kind: { select: { name: true, content: true, doi_content_type: true } } },
@@ -61,6 +68,9 @@ export async function commitStart(
   }
   if (!isDoiContentType(submission.kind.doi_content_type)) {
     return errors.kindNotEligible(kindTitle(submission.kind));
+  }
+  if (submission.kind.doi_content_type !== contentType) {
+    return errors.KIND_CHANGED;
   }
   const now = new Date().toISOString();
   let registrationId: string;
@@ -76,6 +86,7 @@ export async function commitStart(
         status: DOI_REGISTRATION_STATUS.SUBMITTING,
         doi: plan.doi,
         prefix: plan.prefix,
+        content_type: contentType,
         date_modified: now,
         occ: { increment: 1 },
       },
@@ -94,6 +105,7 @@ export async function commitStart(
         site_id: plan.siteId,
         doi: plan.doi,
         prefix: plan.prefix,
+        content_type: contentType,
         status: DOI_REGISTRATION_STATUS.SUBMITTING,
         created_by_id: userId,
       },

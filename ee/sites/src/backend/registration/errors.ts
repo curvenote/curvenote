@@ -18,6 +18,10 @@ export const HAS_DOI = failure(409, 'This submission already has a DOI.');
 export const NOT_ACTIVE = failure(409, 'The site is not set up for DOI registration.');
 export const IN_PROGRESS = failure(409, 'A registration is already in progress.');
 export const PREFIX_CHANGED = failure(409, "The site's DOI prefix changed. Try again.");
+export const KIND_CHANGED = failure(
+  409,
+  "The Submission Kind's DOI content type changed. Try again.",
+);
 export const NOT_QUEUED = failure(503, 'The DOI registration could not be queued. Try again.');
 
 export function kindNotEligible(kindTitle: string): RegistrationFailure {

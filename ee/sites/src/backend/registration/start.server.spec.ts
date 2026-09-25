@@ -86,7 +86,12 @@ beforeEach(() => {
   p.doiRegistration.findUnique.mockResolvedValue(null);
   p.doiRegistration.create.mockResolvedValue({ id: 'reg-1' });
   mocks.generateFreeDoi.mockResolvedValue(DOI);
-  mocks.assembleDeposit.mockResolvedValue({ xml: '<doi_batch/>', issues: [], doi: DOI });
+  mocks.assembleDeposit.mockResolvedValue({
+    xml: '<doi_batch/>',
+    contentType: 'PREPRINT',
+    issues: [],
+    doi: DOI,
+  });
   mocks.insertJobRow.mockResolvedValue({ jobId: 'job-1' });
 });
 
@@ -244,6 +249,7 @@ describe('startRegistration: write', () => {
           status: 'SUBMITTING',
           doi: DOI,
           prefix: PREFIX,
+          content_type: 'PREPRINT',
           submission_id: 'sub-1',
           site_id: SITE,
           created_by_id: 'u1',
@@ -331,7 +337,12 @@ describe('startRegistration: write', () => {
     expect(mocks.generateFreeDoi).not.toHaveBeenCalled();
     expect(tx.doiRegistration.updateMany).toHaveBeenCalledWith({
       where: { id: 'reg-1', doi: DOI, status: { in: ['FAILED', 'DRAFT'] } },
-      data: expect.objectContaining({ status: 'SUBMITTING', doi: DOI, prefix: PREFIX }),
+      data: expect.objectContaining({
+        status: 'SUBMITTING',
+        doi: DOI,
+        prefix: PREFIX,
+        content_type: 'PREPRINT',
+      }),
     });
     expect(tx.doiRegistration.create).not.toHaveBeenCalled();
     expect(mocks.dispatchJob).toHaveBeenCalledWith('job-1', 'CROSSREF_DEPOSIT');
@@ -419,9 +430,22 @@ describe('startRegistration: kind eligibility', () => {
 
     expect(await run()).toEqual({ ok: false, status: 409, error: notEligible });
     expectNothingCreated();
-    expect(p.siteDoiConfig.updateMany.mock.invocationCallOrder[0]).toBeLessThan(
-      p.submission.findUnique.mock.invocationCallOrder[0],
-    );
+  });
+
+  it('refuses when the kind maps to another type than the assembled deposit', async () => {
+    mocks.assembleDeposit.mockResolvedValue({
+      xml: '<doi_batch/>',
+      contentType: 'JOURNAL_ARTICLE',
+      issues: [],
+      doi: DOI,
+    });
+
+    expect(await run()).toEqual({
+      ok: false,
+      status: 409,
+      error: "The Submission Kind's DOI content type changed. Try again.",
+    });
+    expectNothingCreated();
   });
 
   it('refuses a DOI content type Curvenote does not have', async () => {

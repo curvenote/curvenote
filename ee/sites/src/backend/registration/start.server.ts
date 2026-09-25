@@ -136,15 +136,16 @@ export async function startRegistration(
     depositorEmail: deps.creds.depositorEmail,
     resourceUrlBase: deps.creds.resourceUrlBase,
   });
-  if (!assembled.xml) {
+  const { xml, contentType } = assembled;
+  if (!xml || !contentType) {
     return { ok: false, status: 400, error: 'The deposit is not ready.', issues: assembled.issues };
   }
   const xmlPath = depositXmlKey(`${depositId}.xml`);
-  await writePrivateXml(ctx, xmlPath, assembled.xml);
+  await writePrivateXml(ctx, xmlPath, xml);
   let committed;
   try {
     committed = await deps.prisma.$transaction((tx) =>
-      commitStart(tx, { plan, depositId, xmlPath, userId: input.userId }),
+      commitStart(tx, { plan, depositId, xmlPath, contentType, userId: input.userId }),
     );
   } catch (e: any) {
     // A concurrent first start won the submission_id (or doi) unique index. Prisma 7 +

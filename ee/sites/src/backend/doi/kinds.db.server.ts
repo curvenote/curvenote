@@ -19,8 +19,9 @@ export function dbGetSiteKinds(client: Reader, siteId: string) {
 type LiveKindsFilter = { siteId: string; kindIds?: string[] };
 
 /**
- * Kinds with a submission whose DOI Crossref holds or is receiving. Those DOIs were deposited as
- * the kind's content type, so it cannot change under them. A FAILED registration locks nothing.
+ * Kinds with a submission whose DOI Crossref holds or is receiving. Their mapping stays as it is
+ * while those DOIs exist, although each DOI keeps its own type on its registration either way.
+ * A FAILED registration locks nothing.
  */
 export async function dbKindIdsWithLiveRegistrations(
   client: Reader,

@@ -90,6 +90,8 @@ export type MappedDeposit = {
 
 export type AssembledDeposit = {
   xml?: string;
+  /** Present with `xml`: what that XML registers the DOI as. */
+  contentType?: DoiContentType;
   summary?: DepositSummary;
   issues: DepositIssue[];
   doi: string;
