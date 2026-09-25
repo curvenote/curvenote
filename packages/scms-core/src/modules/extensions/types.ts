@@ -613,6 +613,7 @@ export type JobRegistration = {
       payload: unknown;
       results: unknown;
       messages: unknown;
+      invoked_by_id?: string | null;
     };
     priorStatus: JobStatus;
     update: UpdateJob;

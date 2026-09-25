@@ -88,6 +88,11 @@ function isWebVersionAvailable(version: WorkVersionForDetailsClient): boolean {
   );
 }
 
+/** Candidate for a Web Version timeline row: finalized version with CDN storage (sources may exist). */
+function shouldIncludeWebVersionEntry(version: WorkVersionForDetailsClient): boolean {
+  return !version.draft && Boolean(version.cdn?.trim()) && Boolean(version.cdn_key?.trim());
+}
+
 /** Single entrypoint for timeline auto-expand behavior (easy to A/B later). */
 function shouldExpandByDefault(
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -144,17 +149,17 @@ function getSortedSectionEntries(
             version,
           },
         ]),
-    // MyST web build available on this version (cdn + contains includes myst)
-    ...(version.draft || !isWebVersionAvailable(version)
-      ? []
-      : [
+    // Web Version row: CDN-backed finalized versions (component hides itself if no job + not available)
+    ...(shouldIncludeWebVersionEntry(version)
+      ? [
           {
             kind: 'web-version' as const,
             date: version.date_modified || version.date_created,
             key: `web-version-${version.id}`,
             version,
           },
-        ]),
+        ]
+      : []),
     ...submissionVersionsToShow.map((sv) => {
       const isPublished = sv.status === 'PUBLISHED';
       const date = (isPublished ? sv.date_published : null) ?? sv.date_created;
@@ -242,7 +247,9 @@ function WorkVersionTimelineInner({
   const includeDrafts = searchParams.get('drafts') === 'true';
   const canExport = userScopes.includes(scopes.app.works.export);
   const hasChecksFeature = userScopes.includes(scopes.app.works.checks.feature);
-  const hasWebArticleGeneration = userScopes.includes(scopes.app.works.webArticleGeneration);
+  const hasWebArticleGeneration =
+    userScopes.includes(scopes.app.works.webArticleGeneration) ||
+    userScopes.includes(scopes.system.admin);
   const checkServiceById = Object.fromEntries(checkServices.map((s) => [s.id, s]));
 
   const versionNumberByVersionId = useMemo(
@@ -317,15 +324,16 @@ function WorkVersionTimelineInner({
               }
               if (entry.kind === 'web-version') {
                 const { version } = entry;
-                const previewSignature = webVersionPreviewSignatures[version.id];
-                if (!previewSignature) return null;
                 return (
                   <WebVersionCreatedTimelineItem
                     key={entry.key}
                     dateCreated={version.date_modified || version.date_created}
                     dateModified={version.date_modified}
                     workVersionId={version.id}
-                    previewSignature={previewSignature}
+                    basePath={basePath}
+                    previewSignature={webVersionPreviewSignatures[version.id]}
+                    available={isWebVersionAvailable(version)}
+                    linkedJobsByWorkVersionIdPromise={linkedJobsByWorkVersionId}
                   />
                 );
               }

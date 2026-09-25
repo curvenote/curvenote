@@ -3,10 +3,12 @@
  */
 
 import { createWriteStream } from 'node:fs';
+import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { spawn } from 'node:child_process';
+import { dockerAwareFetch } from '@curvenote/scms-tasks';
 import type { FileMetadataSectionItem } from './payload.js';
 
 export const DEFAULT_EXPORT_FILENAME = 'document.pdf';
@@ -72,6 +74,9 @@ export function safeDocxBasename(
  * Download file from signedUrl to tmpFolder/{outputBasename}.
  * tmpFolder should be an absolute path (e.g. path.resolve(tmpFolder)).
  * Throws if signedUrl is missing or download fails.
+ *
+ * Local Docker: uses dockerAwareFetch so MinIO signed URLs on 127.0.0.1 remain valid
+ * while connecting via host.docker.internal.
  */
 export async function downloadFile(
   fileEntry: FileMetadataSectionItem & { pathKey?: string },
@@ -85,16 +90,35 @@ export async function downloadFile(
     );
   }
   const dest = path.join(tmpFolder, outputBasename);
-  const response = await fetch(signedUrl);
+  try {
+    await downloadSignedUrlToFile(signedUrl, dest);
+  } catch (err) {
+    const cause =
+      err instanceof Error && 'cause' in err && err.cause instanceof Error
+        ? err.cause.message
+        : err instanceof Error
+          ? err.message
+          : String(err);
+    throw new Error(`Failed to download ${outputBasename}: ${cause}`);
+  }
+  return dest;
+}
+
+/**
+ * Fetch a signed URL to disk via dockerAwareFetch (shared host-rewrite logic).
+ */
+export async function downloadSignedUrlToFile(signedUrl: string, dest: string): Promise<void> {
+  const response = await dockerAwareFetch(signedUrl);
   if (!response.ok) {
-    throw new Error(`Failed to download Word file: HTTP ${response.status} ${response.statusText}`);
+    throw new Error(`HTTP ${response.status} ${response.statusText}`.trim());
   }
   const body = response.body;
-  if (!body) {
-    throw new Error('Download response has no body');
+  if (body) {
+    await pipeline(
+      Readable.fromWeb(body as Parameters<typeof Readable.fromWeb>[0]),
+      createWriteStream(dest),
+    );
+    return;
   }
-  const writeStream = createWriteStream(dest);
-  // Node 18+ fetch body is a Web ReadableStream; fromWeb accepts it
-  await pipeline(Readable.fromWeb(body as Parameters<typeof Readable.fromWeb>[0]), writeStream);
-  return dest;
+  await writeFile(dest, Buffer.from(await response.arrayBuffer()));
 }
