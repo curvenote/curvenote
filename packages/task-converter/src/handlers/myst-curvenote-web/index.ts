@@ -4,63 +4,41 @@
  * Pull `{cdn_key}/{sourcesPrefix}/` (default `sources/myst`) — manuscript.md,
  * myst.yml, references.bib, media/ — run `curvenote build`, upload `_build/site`
  * to the CDN key root (docx-style), merge `myst` into contains.
+ *
+ * Expects SCMS to have already filtered `metadata.files` to the package prefix;
+ * this handler re-validates paths and rejects anything outside the package.
  */
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { WorkContents } from '@curvenote/scms-core';
+import {
+  isSafeMystWebPackageRelativePath,
+  mystWebPackageRelativePath,
+  resolveMystWebSourcesPrefix,
+} from '@curvenote/common';
 import type { FileMetadataSectionItem } from '../../payload.js';
 import { downloadFile } from '../../utils.js';
 import type { ConversionHandler } from '../types.js';
 import { runSiteBuild } from '../docx-pandoc-myst-web/runSiteBuild.js';
 import { copyProjectSourcesIntoSite } from '../docx-pandoc-myst-web/copyProjectSourcesIntoSite.js';
 
-const DEFAULT_SOURCES_PREFIX = 'sources/myst';
-
-function listContentFiles(
-  metadata: {
-    files?: Record<string, unknown>;
-    foundry?: { files?: Record<string, unknown> };
-  } | null,
-): Array<FileMetadataSectionItem & { pathKey: string }> {
-  const fromFiles = metadata?.files ?? {};
-  const fromFoundry = metadata?.foundry?.files ?? {};
-  // Prefer metadata.files: SCMS merges foundry → files and attaches signedUrl before dispatch.
-  // Spreading foundry last would overwrite those signed entries and break downloads.
-  const merged = { ...fromFoundry, ...fromFiles };
-  return Object.entries(merged)
-    .filter(([, entry]) => entry && typeof entry === 'object')
-    .map(([pathKey, entry]) => ({ ...(entry as FileMetadataSectionItem), pathKey }));
-}
-
-function resolveSourcesPrefix(metadata: unknown): string {
-  const foundry = (metadata as { foundry?: { publish?: { sourcesPrefix?: string } } } | null)
-    ?.foundry;
-  const prefix = foundry?.publish?.sourcesPrefix?.trim();
-  return prefix && prefix.length > 0 ? prefix.replace(/\/$/, '') : DEFAULT_SOURCES_PREFIX;
-}
-
-/** Relative path inside the package (e.g. manuscript.md, media/x.png). */
-function packageRelativePath(
-  file: FileMetadataSectionItem & { pathKey: string },
+function listPackageFiles(
+  metadata: { files?: Record<string, unknown> } | null,
   sourcesPrefix: string,
   cdnKey: string,
-): string | null {
-  const full = (file.path || file.pathKey || '').replace(/^\/+/, '');
-  const markers = [`${cdnKey}/${sourcesPrefix}/`, `${sourcesPrefix}/`];
-  for (const marker of markers) {
-    const idx = full.indexOf(marker);
-    if (idx >= 0) return full.slice(idx + marker.length);
+): Array<{ file: FileMetadataSectionItem & { pathKey: string }; rel: string }> {
+  const fromFiles = metadata?.files ?? {};
+  const out: Array<{ file: FileMetadataSectionItem & { pathKey: string }; rel: string }> = [];
+  for (const [pathKey, entry] of Object.entries(fromFiles)) {
+    if (!entry || typeof entry !== 'object') continue;
+    const file = { ...(entry as FileMetadataSectionItem), pathKey };
+    const full = (file.path || pathKey || '').replace(/^\/+/, '');
+    const rel = mystWebPackageRelativePath(full, sourcesPrefix, cdnKey);
+    if (!rel || !isSafeMystWebPackageRelativePath(rel)) continue;
+    out.push({ file, rel });
   }
-  // Fallback: known package filenames at any depth
-  const name = file.name || path.basename(full);
-  if (name === 'manuscript.md' || name === 'myst.yml' || name === 'references.bib') {
-    return name;
-  }
-  if (full.includes('/media/')) {
-    return `media/${name}`;
-  }
-  return null;
+  return out;
 }
 
 export const runMystCurvenoteWeb: ConversionHandler = async (ctx) => {
@@ -72,16 +50,12 @@ export const runMystCurvenoteWeb: ConversionHandler = async (ctx) => {
     throw new Error('Work version is missing cdn/cdn_key; cannot upload web article to storage');
   }
 
-  const sourcesPrefix = resolveSourcesPrefix(workVersion.metadata);
-  const files = listContentFiles(workVersion.metadata);
-  const packageFiles = files
-    .map((f) => {
-      const rel = packageRelativePath(f, sourcesPrefix, workVersion.cdn_key!);
-      return rel ? { file: f, rel } : null;
-    })
-    .filter((x): x is { file: FileMetadataSectionItem & { pathKey: string }; rel: string } =>
-      Boolean(x),
-    );
+  const sourcesPrefix = resolveMystWebSourcesPrefix(workVersion.metadata);
+  const packageFiles = listPackageFiles(
+    workVersion.metadata,
+    sourcesPrefix,
+    workVersion.cdn_key,
+  );
 
   const hasManuscript = packageFiles.some((p) => p.rel === 'manuscript.md');
   const hasMystYml = packageFiles.some((p) => p.rel === 'myst.yml');
@@ -97,7 +71,11 @@ export const runMystCurvenoteWeb: ConversionHandler = async (ctx) => {
     if (!file.signedUrl) {
       throw new Error(`Missing signedUrl for ${rel}`);
     }
-    const destDir = path.join(workDir, path.dirname(rel));
+    const dest = path.resolve(workDir, rel);
+    if (!dest.startsWith(workDir + path.sep) && dest !== workDir) {
+      throw new Error(`Refusing to write outside work dir: ${rel}`);
+    }
+    const destDir = path.dirname(dest);
     await fs.mkdir(destDir, { recursive: true });
     await downloadFile(file, destDir, path.basename(rel));
   }

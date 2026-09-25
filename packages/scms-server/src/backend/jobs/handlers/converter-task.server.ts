@@ -7,6 +7,10 @@ import type {
   WorkVersionPayload,
   WorkVersionMetadataPayload,
 } from '@curvenote/common';
+import {
+  filterFilesToMystWebPackage,
+  resolveMystWebSourcesPrefix,
+} from '@curvenote/common';
 import { uuidv7 } from 'uuidv7';
 import { getPrismaClient } from '../../prisma.server.js';
 import { createHandshakeToken } from '../../sign.handshake.server.js';
@@ -165,17 +169,20 @@ export async function converterTaskHandler(ctx: Context, data: CreateJob) {
 
   const workVersionPayload = workVersionToPayload(workVersionRow);
   if (workVersionPayload.metadata) {
-    // myst-curvenote-web reads Foundry-imported sources from metadata.foundry.files;
-    // merge them into files so signFilesInMetadata attaches download URLs.
+    // myst-curvenote-web: send only Foundry package files under sourcesPrefix (default sources/myst).
+    // Do not merge general SCMS files (DOCX media, etc.) into the converter payload.
     if (payload.conversion_type === 'myst-curvenote-web') {
       const meta = workVersionPayload.metadata as WorkVersionMetadataPayload & {
         foundry?: { files?: Record<string, unknown> };
         files?: Record<string, unknown>;
       };
-      const foundryFiles = meta.foundry?.files;
-      if (foundryFiles && typeof foundryFiles === 'object') {
-        meta.files = { ...(meta.files ?? {}), ...foundryFiles };
-      }
+      const sourcesPrefix = resolveMystWebSourcesPrefix(meta);
+      const cdnKey = workVersionRow.cdn_key?.trim() ?? '';
+      const foundryFiles =
+        meta.foundry?.files && typeof meta.foundry.files === 'object' ? meta.foundry.files : {};
+      const preferred =
+        Object.keys(foundryFiles).length > 0 ? foundryFiles : (meta.files ?? {});
+      meta.files = filterFilesToMystWebPackage(preferred, sourcesPrefix, cdnKey);
     }
     const signedMetadata = await signFilesInMetadata(
       workVersionPayload.metadata as Parameters<typeof signFilesInMetadata>[0],
