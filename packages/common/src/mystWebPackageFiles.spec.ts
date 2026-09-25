@@ -27,9 +27,28 @@ describe('mystWebPackageFiles', () => {
     expect(mystWebPackageRelativePath(`${prefix}/media/fig.png`, prefix, cdnKey)).toBe(
       'media/fig.png',
     );
-    expect(mystWebPackageRelativePath(`${cdnKey}/uploads/manuscript.md`, prefix, cdnKey)).toBeNull();
+    expect(
+      mystWebPackageRelativePath(`${cdnKey}/uploads/manuscript.md`, prefix, cdnKey),
+    ).toBeNull();
     expect(mystWebPackageRelativePath('media/fig.png', prefix, cdnKey)).toBeNull();
     expect(mystWebPackageRelativePath('manuscript.md', prefix, cdnKey)).toBeNull();
+  });
+
+  it('rejects a sourcesPrefix hit that is not the path prefix', () => {
+    expect(
+      mystWebPackageRelativePath(
+        `${cdnKey}/uploads/archive/${prefix}/private.docx`,
+        prefix,
+        cdnKey,
+      ),
+    ).toBeNull();
+    expect(
+      mystWebPackageRelativePath(`${cdnKey}/notsources/myst/secret.md`, prefix, cdnKey),
+    ).toBeNull();
+    expect(
+      mystWebPackageRelativePath(`prefix-${cdnKey}/${prefix}/file.md`, prefix, cdnKey),
+    ).toBeNull();
+    expect(mystWebPackageRelativePath(`other-key/${prefix}/leak.bin`, prefix, cdnKey)).toBeNull();
   });
 
   it('rejects unsafe relative paths', () => {
@@ -53,6 +72,11 @@ describe('mystWebPackageFiles', () => {
       },
       other: { path: 'manuscript.md', name: 'manuscript.md' },
       escape: { path: `${prefix}/../../evil`, name: 'evil' },
+      nested: {
+        path: `${cdnKey}/uploads/archive/${prefix}/private.docx`,
+        name: 'private.docx',
+      },
+      midSegment: { path: `${cdnKey}/notsources/myst/secret.md`, name: 'secret.md' },
     };
     const filtered = filterFilesToMystWebPackage(files, prefix, cdnKey);
     expect(Object.keys(filtered).sort()).toEqual(

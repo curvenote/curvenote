@@ -7,10 +7,7 @@ import type {
   WorkVersionPayload,
   WorkVersionMetadataPayload,
 } from '@curvenote/common';
-import {
-  filterFilesToMystWebPackage,
-  resolveMystWebSourcesPrefix,
-} from '@curvenote/common';
+import { filterFilesToMystWebPackage, resolveMystWebSourcesPrefix } from '@curvenote/common';
 import { uuidv7 } from 'uuidv7';
 import { getPrismaClient } from '../../prisma.server.js';
 import { createHandshakeToken } from '../../sign.handshake.server.js';
@@ -188,8 +185,7 @@ export async function converterTaskHandler(ctx: Context, data: CreateJob) {
       const cdnKey = workVersionRow.cdn_key?.trim() ?? '';
       const foundryFiles =
         meta.foundry?.files && typeof meta.foundry.files === 'object' ? meta.foundry.files : {};
-      const preferred =
-        Object.keys(foundryFiles).length > 0 ? foundryFiles : (meta.files ?? {});
+      const preferred = Object.keys(foundryFiles).length > 0 ? foundryFiles : (meta.files ?? {});
       meta.files = filterFilesToMystWebPackage(preferred, sourcesPrefix, cdnKey);
     }
     const signedMetadata = await signFilesInMetadata(
