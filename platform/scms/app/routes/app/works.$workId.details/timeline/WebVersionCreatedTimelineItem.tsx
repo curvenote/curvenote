@@ -1,6 +1,6 @@
 import { Suspense, useEffect, useRef, type ReactNode } from 'react';
 import { Await, useFetcher, useRevalidator } from 'react-router';
-import { ExternalLink, Globe, Loader2, RotateCcw } from 'lucide-react';
+import { ExternalLink, Globe, InfoIcon, Loader2, RotateCcw } from 'lucide-react';
 import { DateWithPopover, TimelineItemPlain, useDeploymentConfig, ui } from '@curvenote/scms-core';
 import type { LinkedJobsByWorkVersionId } from '../types';
 import { pickLatestWebConversionJob, resolveWebConversionTimelineModel } from '../webConversionJob';
@@ -89,10 +89,26 @@ function WebVersionRow({
     message = <>Web Version building…</>;
   } else if (model.phase === 'failed') {
     message = (
-      <>
-        Web Version failed
-        {model.error ? <span className="text-muted-foreground"> — {model.error}</span> : null}
-      </>
+      <span className="inline-flex items-center gap-1.5 min-w-0">
+        <span>Web Version failed</span>
+        {model.error ? (
+          <ui.SimpleTooltip
+            title={model.error}
+            side="top"
+            sideOffset={6}
+            delayDuration={200}
+            className="max-w-sm text-left whitespace-normal"
+          >
+            <button
+              type="button"
+              className="inline-flex shrink-0 text-muted-foreground hover:text-foreground"
+              aria-label="Conversion error details"
+            >
+              <InfoIcon className="size-3.5" aria-hidden />
+            </button>
+          </ui.SimpleTooltip>
+        ) : null}
+      </span>
     );
   } else {
     message = <>Web Version Created</>;
@@ -152,7 +168,6 @@ function WebVersionRow({
       message={message}
       date={date}
       trailing={trailing}
-      muted={model.phase === 'building' || model.phase === 'failed'}
     />
   );
 }
