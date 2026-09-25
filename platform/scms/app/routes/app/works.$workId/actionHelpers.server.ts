@@ -2,6 +2,7 @@ import { data } from 'react-router';
 import { userHasScope, enqueueAndDispatchJob, getPrismaClient } from '@curvenote/scms-server';
 import type { WorkContext } from '@curvenote/scms-server';
 import { hasDocxInMetadata, scopes } from '@curvenote/scms-core';
+import { isMystCurvenoteWebPayload } from '../works.$workId.details/webConversionJob';
 import { z } from 'zod';
 import { zfd } from 'zod-form-data';
 import { uuidv7 } from 'uuidv7';
@@ -157,13 +158,7 @@ export async function retryWebConversionAction(ctx: WorkContext, formData: FormD
   const inFlight = linked.find((row) => {
     if (row.job.job_type !== 'CONVERTER_TASK') return false;
     if (!['QUEUED', 'SCHEDULED', 'RUNNING'].includes(row.job.status)) return false;
-    const payload =
-      row.job.payload != null &&
-      typeof row.job.payload === 'object' &&
-      !Array.isArray(row.job.payload)
-        ? (row.job.payload as Record<string, unknown>)
-        : null;
-    return payload?.target === 'web';
+    return isMystCurvenoteWebPayload(row.job.payload);
   });
   if (inFlight) {
     return data({ success: true, jobId: inFlight.job.id, alreadyInFlight: true });

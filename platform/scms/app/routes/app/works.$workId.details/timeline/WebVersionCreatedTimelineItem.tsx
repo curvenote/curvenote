@@ -197,7 +197,7 @@ function WebVersionRow({
 }
 
 /**
- * Timeline row for web preview lifecycle (converter jobs with target=web):
+ * Timeline row for the Foundry MyST web preview (`myst-curvenote-web`):
  * queued → building → failed (Retry) or available (View).
  */
 export function WebVersionCreatedTimelineItem({
