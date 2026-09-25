@@ -6,7 +6,7 @@ import { fetchDepositResult } from '../crossref/depositResult.server.js';
 import { resultXmlKey, writePrivateXml } from '../deposit/storage.server.js';
 import type { DoiDeps } from '../doi/types.js';
 import { applyDepositResult, failDeposit } from '../registration/result.server.js';
-import { pastHorizon, scheduledAtAfter } from './backoff.js';
+import { pastHorizon, pollScheduledAt } from './backoff.js';
 import { complete, fail, loadDeposit, parsePayload } from './handler.server.js';
 import type { CrossrefJobPayload, JobDepositRow } from './handler.server.js';
 import { insertJobRow } from './schedule.server.js';
@@ -76,7 +76,7 @@ type ReschedulePollInput = {
  * this poll did not learn it, and Prisma skips an undefined field, so a known id is never cleared.
  */
 async function reschedulePoll({ prisma, row, payload, crossrefSubmissionId }: ReschedulePollInput) {
-  const scheduledAt = scheduledAtAfter(new Date(), payload.attempt);
+  const scheduledAt = pollScheduledAt(new Date(), payload.attempt + 1);
   const rescheduled = await prisma.$transaction(async (tx) => {
     const updated = await tx.doiDeposit.updateMany({
       where: { id: row.id, status: DOI_DEPOSIT_STATUS.QUEUED },

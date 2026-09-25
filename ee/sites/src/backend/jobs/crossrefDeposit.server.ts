@@ -6,7 +6,7 @@ import { deposit } from '../crossref/deposit.server.js';
 import { readPrivateXml } from '../deposit/storage.server.js';
 import type { DoiDeps } from '../doi/types.js';
 import { failDeposit } from '../registration/result.server.js';
-import { pastHorizon, scheduledAtAfter } from './backoff.js';
+import { pastHorizon, pollScheduledAt, scheduledAtAfter } from './backoff.js';
 import { complete, fail, loadDeposit, parsePayload } from './handler.server.js';
 import type { CrossrefJobPayload, JobDepositRow } from './handler.server.js';
 import { insertJobRow } from './schedule.server.js';
@@ -47,7 +47,7 @@ async function markQueuedAndSchedulePoll(
     const job = await insertJobRow(tx, {
       jobType: KnownJobTypes.CROSSREF_POLL,
       payload: { depositId: payload.depositId, siteId: payload.siteId, attempt: 1 },
-      scheduledAt: scheduledAtAfter(new Date(), 1),
+      scheduledAt: pollScheduledAt(new Date(), 1),
     });
     await tx.doiDeposit.update({ where: { id: row.id }, data: { job_id: job.jobId } });
     return true;

@@ -1,6 +1,6 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, expect, it } from 'vitest';
-import { pastHorizon, scheduledAtAfter } from './backoff.js';
+import { pastHorizon, pollScheduledAt, scheduledAtAfter } from './backoff.js';
 
 describe('scheduledAtAfter', () => {
   it('widens 1, 2, 5, 10, 30 and caps at 60 minutes', () => {
@@ -15,6 +15,16 @@ describe('scheduledAtAfter', () => {
     expect(scheduledAtAfter(new Date('2026-09-21T10:00:00.000Z'), 3)).toBe(
       '2026-09-21T10:05:00.000Z',
     );
+  });
+});
+
+describe('pollScheduledAt', () => {
+  it('waits a minute before each of the first ten polls, then widens and caps at 60 minutes', () => {
+    const now = new Date('2026-09-21T10:00:00.000Z');
+    const minutes = Array.from({ length: 19 }, (_, i) => i + 1).map(
+      (poll) => (new Date(pollScheduledAt(now, poll)).getTime() - now.getTime()) / 60_000,
+    );
+    expect(minutes).toEqual([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 5, 5, 10, 30, 60, 60, 60]);
   });
 });
 

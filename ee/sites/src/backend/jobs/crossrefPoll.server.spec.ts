@@ -1,5 +1,5 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   fetchDepositResult: vi.fn(),
@@ -90,6 +90,10 @@ beforeEach(() => {
   mocks.applyDepositResult.mockResolvedValue(undefined);
 });
 
+afterEach(() => {
+  vi.useRealTimers();
+});
+
 describe('crossrefPollHandler', () => {
   it('stores the raw result and applies a completed result', async () => {
     mocks.fetchDepositResult.mockResolvedValue(completed);
@@ -140,6 +144,17 @@ describe('crossrefPollHandler', () => {
       data: { job_id: 'job-next' },
     });
     expect(out).toMatchObject({ status: 'COMPLETED', message: expect.stringMatching(/queued/) });
+  });
+
+  it('schedules poll 11 two minutes out after ten one-minute polls', async () => {
+    vi.useFakeTimers({ now: new Date('2026-09-21T10:00:00.000Z'), toFake: ['Date'] });
+    mocks.fetchDepositResult.mockResolvedValue({ state: 'queued', submissionId: '1', xml: '<q/>' });
+    await crossrefPollHandler(ctx, job(10));
+    expect(mocks.insertJobRow).toHaveBeenCalledWith(mocks.prisma, {
+      jobType: 'CROSSREF_POLL',
+      payload: { depositId: 'dep-1', siteId: 'site-a', attempt: 11 },
+      scheduledAt: '2026-09-21T10:02:00.000Z',
+    });
   });
 
   it('treats unknown_submission, a 5xx and a malformed body as no result yet, never clearing a known submission id', async () => {
