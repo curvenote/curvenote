@@ -62,6 +62,4 @@ export type EligibleKindDTO = {
   id: string;
   title: string;
   doiContentType: DoiContentType | null;
-  /** DOIs of this kind are registered or being registered, so its content type stays as it is. */
-  locked: boolean;
 };

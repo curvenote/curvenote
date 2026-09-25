@@ -1,12 +1,7 @@
 import type { DoiContentType } from '@curvenote/scms-core';
-import { kindTitle } from '../kinds.utils.js';
 import { commitDoiWrite, dbGetDoiConfig, toDTO } from './db.server.js';
-import { DOI_ERRORS, STALE, kindLocked } from './errors.js';
-import {
-  dbGetSiteKinds,
-  dbKindIdsWithLiveRegistrations,
-  dbSetKindContentType,
-} from './kinds.db.server.js';
+import { DOI_ERRORS, STALE } from './errors.js';
+import { dbGetSiteKinds, dbSetKindContentType } from './kinds.db.server.js';
 import type { DoiActor, DoiDeps, DoiFailure, DoiResult } from './types.js';
 
 const UNKNOWN_KIND: DoiFailure = { ok: false, status: 400, error: DOI_ERRORS.unknownKind };
@@ -25,6 +20,9 @@ export type UpdateKindMappingInput = {
  * site has a DOI setup, including one still waiting for its role. Each kind is last-write-wins,
  * like its name: the form sends only the kinds the admin changed, so a stale tab cannot put back
  * a kind it did not touch.
+ *
+ * A kind with registered DOIs can change too: each DOI keeps the content type recorded on its
+ * registration, so only registrations that start afterwards use the new one.
  */
 export async function updateKindMapping(
   deps: DoiDeps,
@@ -49,17 +47,6 @@ export async function updateKindMapping(
   });
   if (changes.length === 0) {
     return { ok: true, config: toDTO(existing) };
-  }
-  // The page disables locked kinds; this refuses a crafted or outdated form. A registration that
-  // starts between this read and the write can still see its kind change: its DOI keeps the
-  // content type recorded on its registration.
-  const locked = await dbKindIdsWithLiveRegistrations(deps.prisma, {
-    siteId,
-    kindIds: changes.map(({ kind }) => kind.id),
-  });
-  const blocked = changes.find(({ kind }) => locked.has(kind.id));
-  if (blocked) {
-    return kindLocked(kindTitle(blocked.kind));
   }
   const snapshot = changes.map(({ kind, value }) => ({
     id: kind.id,

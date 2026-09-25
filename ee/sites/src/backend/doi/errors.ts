@@ -20,11 +20,3 @@ export const DOI_ERRORS = {
 
 /** Another request changed or removed the row since the page loaded. */
 export const STALE: DoiFailure = { ok: false, status: 409, error: DOI_ERRORS.stale };
-
-export function kindLocked(title: string): DoiFailure {
-  return {
-    ok: false,
-    status: 409,
-    error: `"${title}" has DOIs registered or being registered, so its DOI content type cannot change. Nothing was saved.`,
-  };
-}

@@ -125,12 +125,6 @@ export async function dbGetRoleBoundBy(client: DoiDeps['prisma'], siteId: string
   return { name: display_name ?? username ?? 'Unknown user', date: activity.date_created };
 }
 
-/** Registrations Crossref holds or is receiving; see dbSiteHasLiveRegistrations for why they block. */
-export const LIVE_REGISTRATION_STATUSES: string[] = [
-  DOI_REGISTRATION_STATUS.REGISTERED,
-  DOI_REGISTRATION_STATUS.SUBMITTING,
-];
-
 /**
  * A registered DOI must keep resolving under the prefix and role it was deposited with, and a
  * deposit in flight must be able to finish polling. Either one blocks unlink and reset.
@@ -142,7 +136,9 @@ export async function dbSiteHasLiveRegistrations(
   const found = await client.doiRegistration.findFirst({
     where: {
       site_id: siteId,
-      status: { in: LIVE_REGISTRATION_STATUSES },
+      status: {
+        in: [DOI_REGISTRATION_STATUS.REGISTERED, DOI_REGISTRATION_STATUS.SUBMITTING],
+      },
     },
     select: { id: true },
   });

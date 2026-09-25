@@ -55,7 +55,6 @@ export function makeDeps(fetchMock: ReturnType<typeof fakeFetch> = fakeFetch()) 
       findMany: vi.fn().mockResolvedValue([]),
       update: vi.fn(),
     },
-    submission: { findMany: vi.fn().mockResolvedValue([]) },
     activity: { create: vi.fn() },
     $transaction: vi.fn(async (fn: (tx: unknown) => unknown) => fn(prisma)),
   };

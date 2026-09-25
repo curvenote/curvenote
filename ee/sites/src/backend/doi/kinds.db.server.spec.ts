@@ -16,11 +16,11 @@ describe('dbListKindMappings', () => {
     ]);
 
     expect(await dbListKindMappings(deps.prisma, 'site-a')).toEqual([
-      { id: 'kind-news', title: 'News', doiContentType: null, locked: false },
+      { id: 'kind-news', title: 'News', doiContentType: null },
     ]);
   });
 
-  test('lists every kind of the site with its title, content type and lock', async () => {
+  test('lists every kind of the site with its title and content type', async () => {
     const { deps, prisma } = makeDeps();
     prisma.submissionKind.findMany.mockResolvedValue([
       {
@@ -31,15 +31,10 @@ describe('dbListKindMappings', () => {
       },
       { id: 'kind-blog', name: 'Blog', content: {}, doi_content_type: 'PREPRINT' },
     ]);
-    prisma.submission.findMany.mockResolvedValue([{ kind_id: 'kind-blog' }]);
 
     expect(await dbListKindMappings(deps.prisma, 'site-a')).toEqual([
-      { id: 'kind-article', title: 'Research Article', doiContentType: null, locked: false },
-      { id: 'kind-blog', title: 'Blog', doiContentType: 'PREPRINT', locked: true },
+      { id: 'kind-article', title: 'Research Article', doiContentType: null },
+      { id: 'kind-blog', title: 'Blog', doiContentType: 'PREPRINT' },
     ]);
-    expect(prisma.submission.findMany.mock.calls[0][0].where).toEqual({
-      site_id: 'site-a',
-      doiRegistration: { is: { status: { in: ['REGISTERED', 'SUBMITTING'] } } },
-    });
   });
 });

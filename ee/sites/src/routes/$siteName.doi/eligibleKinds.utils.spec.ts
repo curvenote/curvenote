@@ -10,8 +10,8 @@ import {
 } from './eligibleKinds.utils.js';
 
 const kinds: EligibleKindDTO[] = [
-  { id: 'kind-article', title: 'Article', doiContentType: null, locked: false },
-  { id: 'kind-blog', title: 'Blog', doiContentType: 'PREPRINT', locked: true },
+  { id: 'kind-article', title: 'Article', doiContentType: null },
+  { id: 'kind-blog', title: 'Blog', doiContentType: 'PREPRINT' },
 ];
 
 describe('eligible kinds draft', () => {
@@ -29,7 +29,7 @@ describe('eligible kinds draft', () => {
   });
 
   it('treats a kind missing from the draft as not eligible', () => {
-    const added = [...kinds, { id: 'kind-new', title: 'New', doiContentType: null, locked: false }];
+    const added = [...kinds, { id: 'kind-new', title: 'New', doiContentType: null }];
     expect(isDraftDirty(added, draftFromKinds(kinds))).toBe(false);
   });
 

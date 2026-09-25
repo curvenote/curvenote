@@ -31,8 +31,8 @@ function render(kinds: EligibleKindDTO[]) {
 describe('DoiEligibleKindsCard', () => {
   it('shows each kind checked as saved, and links to the kinds settings', () => {
     const html = render([
-      { id: 'kind-article', title: 'Article', doiContentType: 'PREPRINT', locked: false },
-      { id: 'kind-blog', title: 'Blog', doiContentType: null, locked: false },
+      { id: 'kind-article', title: 'Article', doiContentType: 'PREPRINT' },
+      { id: 'kind-blog', title: 'Blog', doiContentType: null },
     ]);
     expect(html).toContain('Article');
     expect(html).toContain('Blog');
@@ -43,9 +43,7 @@ describe('DoiEligibleKindsCard', () => {
   });
 
   it('lays the kinds out under Submission Kind and DOI content type columns', () => {
-    const html = render([
-      { id: 'kind-article', title: 'Article', doiContentType: null, locked: false },
-    ]);
+    const html = render([{ id: 'kind-article', title: 'Article', doiContentType: null }]);
     expect(html).toContain(
       'Choose which enabled Submission Kinds can receive DOIs and how they should be registered.',
     );
@@ -54,16 +52,6 @@ describe('DoiEligibleKindsCard', () => {
     expect(html).toContain(
       'Newly enabled Submission Kinds will automatically appear here for review.',
     );
-  });
-
-  it('locks a kind with live DOIs and says why', () => {
-    const html = render([
-      { id: 'kind-blog', title: 'Blog', doiContentType: 'PREPRINT', locked: true },
-    ]);
-    expect(html).toContain(
-      '<button type="button" aria-label="DOIs of this Submission Kind are registered or being registered, so its content type can&#x27;t change."',
-    );
-    expect(html).not.toContain('<p class="px-4 pt-2');
   });
 
   it('says so when the site has no kinds', () => {

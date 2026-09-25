@@ -14,11 +14,8 @@ import {
   savedMappingKey,
   setEligible,
 } from './eligibleKinds.utils.js';
-import { LockedLabel } from './LockedLabel.js';
 
 const COLUMNS = 'grid grid-cols-2 gap-4 items-center px-4';
-const LOCKED_REASON =
-  "DOIs of this Submission Kind are registered or being registered, so its content type can't change.";
 
 type EligibleKindRowProps = {
   kind: EligibleKindDTO;
@@ -37,7 +34,6 @@ function EligibleKindRow({
 }: EligibleKindRowProps) {
   const checkboxId = `doi-kind-${kind.id}`;
   const eligible = value !== null;
-  const disabled = kind.locked || busy;
   return (
     <li className={cn('py-3', !eligible && 'bg-stone-50 dark:bg-stone-800/50')}>
       <div className={COLUMNS}>
@@ -45,21 +41,15 @@ function EligibleKindRow({
           <ui.Checkbox
             id={checkboxId}
             checked={eligible}
-            disabled={disabled}
+            disabled={busy}
             onCheckedChange={(checked) => onEligibleChange(checked === true)}
           />
-          {kind.locked ? (
-            <LockedLabel htmlFor={checkboxId} reason={LOCKED_REASON}>
-              {kind.title}
-            </LockedLabel>
-          ) : (
-            <label
-              htmlFor={checkboxId}
-              className={cn('text-sm font-medium', !eligible && 'text-muted-foreground')}
-            >
-              {kind.title}
-            </label>
-          )}
+          <label
+            htmlFor={checkboxId}
+            className={cn('text-sm font-medium', !eligible && 'text-muted-foreground')}
+          >
+            {kind.title}
+          </label>
         </div>
         <ui.Select
           value={value ?? ''}
@@ -68,7 +58,7 @@ function EligibleKindRow({
               onContentTypeChange(next);
             }
           }}
-          disabled={disabled || !eligible}
+          disabled={busy || !eligible}
         >
           <ui.SelectTrigger className="w-full" aria-label={`DOI content type for ${kind.title}`}>
             <ui.SelectValue placeholder="Select…" />

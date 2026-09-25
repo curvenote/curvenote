@@ -1,6 +1,6 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, expect, test, vi } from 'vitest';
-import { DOI_ERRORS, kindLocked } from './errors.js';
+import { DOI_ERRORS } from './errors.js';
 import { updateKindMapping } from './kinds.server.js';
 import type { KindMappingEntry } from './kinds.server.js';
 import { makeDeps, row, wroteNothing } from './testing.js';
@@ -78,28 +78,6 @@ describe('updateKindMapping', () => {
     );
 
     expect(result).toMatchObject({ ok: true, config: { occ: 3 } });
-    expect(wroteNothing(prisma)).toBe(true);
-  });
-
-  test('checks live registrations of the changed kinds only', async () => {
-    const { deps, prisma } = setup();
-
-    await updateKindMapping(deps, input(bothPreprint));
-
-    expect(prisma.submission.findMany.mock.calls[0][0].where).toEqual({
-      site_id: 'site-a',
-      kind_id: { in: ['kind-article'] },
-      doiRegistration: { is: { status: { in: ['REGISTERED', 'SUBMITTING'] } } },
-    });
-  });
-
-  test('refuses a kind with a registered or in-flight DOI, naming it, writing nothing', async () => {
-    const { deps, prisma } = setup();
-    prisma.submission.findMany.mockResolvedValue([{ kind_id: 'kind-article' }]);
-
-    const result = await updateKindMapping(deps, input(bothPreprint));
-
-    expect(result).toEqual(kindLocked('Research Article'));
     expect(wroteNothing(prisma)).toBe(true);
   });
 
