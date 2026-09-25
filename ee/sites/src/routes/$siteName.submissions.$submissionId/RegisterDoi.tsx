@@ -4,6 +4,7 @@ import { Await, Link } from 'react-router';
 import { AlertTriangle } from 'lucide-react';
 import type { DoiReadiness } from '../../backend/deposit/readiness.server.js';
 import type { DepositIssue } from '../../backend/deposit/types.js';
+import type { RegisterDoiFetcher } from './DoiRow.js';
 import { RegisterDoiDialog } from './RegisterDoiDialog.js';
 import { describeDoiBlockers } from './RegisterDoi.utils.js';
 
@@ -28,15 +29,15 @@ type BlockersProps = {
 
 function Blockers({ issues, setupUrl }: BlockersProps) {
   const blockers = describeDoiBlockers(issues);
-  if (blockers.kind === 'site_not_active') {
+  if (blockers.kind === 'setup') {
     return (
       <Blocker>
-        DOIs are not set up for this site.
+        {blockers.sentence}
         {setupUrl && (
           <>
             {' '}
             <Link to={setupUrl} className="text-primary hover:underline">
-              Set up DOIs
+              {blockers.action}
             </Link>
           </>
         )}
@@ -64,17 +65,29 @@ type RegisterDoiStateProps = {
   readiness: DoiReadiness;
   resolvesTo: string;
   setupUrl?: string;
+  canRegister: boolean;
+  fetcher: RegisterDoiFetcher;
 };
 
-function RegisterDoiState({ readiness, resolvesTo, setupUrl }: RegisterDoiStateProps) {
+function RegisterDoiState({
+  readiness,
+  resolvesTo,
+  setupUrl,
+  canRegister,
+  fetcher,
+}: RegisterDoiStateProps) {
   switch (readiness.kind) {
     case 'ready':
+      if (!canRegister) {
+        return <Note>Ready to register. A site admin can register the DOI.</Note>;
+      }
       return (
         <RegisterDoiDialog
           prefix={readiness.prefix}
           summary={readiness.summary}
           warnings={readiness.warnings}
           resolvesTo={resolvesTo}
+          fetcher={fetcher}
         />
       );
     case 'blocked':
@@ -94,10 +107,19 @@ type RegisterDoiProps = {
   resolvesTo: string;
   /** DOI Registration page, linked when the site isn't set up; omit when the user can't open it. */
   setupUrl?: string;
+  /** site.doi.register + the DOI feature flag; without it a ready work shows a note, no button. */
+  canRegister: boolean;
+  fetcher: RegisterDoiFetcher;
 };
 
 /** The DOI row when the work has no DOI yet. The check reads the CDN, so it streams in. */
-export function RegisterDoi({ readiness, resolvesTo, setupUrl }: RegisterDoiProps) {
+export function RegisterDoi({
+  readiness,
+  resolvesTo,
+  setupUrl,
+  canRegister,
+  fetcher,
+}: RegisterDoiProps) {
   const unavailable = (
     <Note>Could not check the DOI requirements. Reload the page to try again.</Note>
   );
@@ -106,7 +128,13 @@ export function RegisterDoi({ readiness, resolvesTo, setupUrl }: RegisterDoiProp
       {/* loadDoiReadiness never rejects; this covers the stream being cut off. */}
       <Await resolve={readiness} errorElement={unavailable}>
         {(resolved: DoiReadiness) => (
-          <RegisterDoiState readiness={resolved} resolvesTo={resolvesTo} setupUrl={setupUrl} />
+          <RegisterDoiState
+            readiness={resolved}
+            resolvesTo={resolvesTo}
+            setupUrl={setupUrl}
+            canRegister={canRegister}
+            fetcher={fetcher}
+          />
         )}
       </Await>
     </Suspense>

@@ -5,7 +5,7 @@ import {
   activityWorkVersionRefSelect,
   submissionVersionForListSelect,
 } from '../../../prisma.selects.server.js';
-import { coerceToObject, makePaginationLinks } from '@curvenote/scms-core';
+import { coerceToObject, makePaginationLinks, resolveSiteWorkDoi } from '@curvenote/scms-core';
 import type { Prisma } from '@curvenote/scms-db';
 import { formatAuthorDTO } from '../../../format.server.js';
 import { findImportantVersions } from './utils.server.js';
@@ -183,7 +183,7 @@ export async function formatSubmissionItemDTO(
     authors: wv.authors.map((a) => formatAuthorDTO(a)),
     description: wv.description ?? undefined,
     date: wv.date ?? undefined,
-    doi: wv.doi ?? dbo.work?.doi ?? undefined,
+    doi: resolveSiteWorkDoi({ submission: dbo.doi, workVersion: wv.doi, work: dbo.work?.doi }),
     status: dboActive.status,
     transition:
       dboActive.transition == null ? undefined : (dboActive.transition as WorkflowTransition),

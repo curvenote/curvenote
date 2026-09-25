@@ -6,6 +6,9 @@ model SubmissionKind {
   default            Boolean              @default(false)
   content            Json                 @default("{}")
   checks             Json?
+  /// What DOIs of this kind are registered as, in Curvenote's terms (DOI_CONTENT_TYPE in
+  /// scms-core); each agency's deposit mapper translates it. Null: this kind cannot register DOIs.
+  doi_content_type   String?
   site               Site                 @relation(fields: [site_id], references: [id])
   site_id            String
   submissions        Submission[]

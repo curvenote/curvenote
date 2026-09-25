@@ -5,7 +5,7 @@ export function lapalmaSource(overrides: Partial<DepositSource> = {}): DepositSo
   return {
     submissionVersionId: 'sv-lapalma',
     siteId: 'site-a',
-    kindName: 'Article',
+    kind: { title: 'Article', doiContentType: 'PREPRINT' },
     doiConfig: { status: 'ACTIVE', prefix: '10.62329', role: null },
     dates: {
       submissionPublished: '2022-10-11T00:00:00.000Z',

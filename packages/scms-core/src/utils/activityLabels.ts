@@ -25,7 +25,7 @@ export const ACTIVITY_TYPE_LABELS: Record<string, string> = {
   SITE_DOI_CONFIG_UPDATED: 'Site DOI configuration updated',
   DOI_REGISTRATION_STARTED: 'DOI registration started',
   DOI_REGISTRATION_COMPLETED: 'DOI registered',
-  DOI_REGISTRATION_FAILED: 'DOI registration failed',
+  DOI_REGISTRATION_FAILED: 'DOI registration unsuccessful',
   COLLECTION_CREATED: 'New collection',
   COLLECTION_DELETED: 'Collection deleted',
   COLLECTION_UPDATED: 'Collection updated',

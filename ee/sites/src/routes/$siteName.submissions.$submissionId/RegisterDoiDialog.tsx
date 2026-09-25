@@ -3,6 +3,8 @@ import { ExternalLink, Link2 } from 'lucide-react';
 import { ui } from '@curvenote/scms-core';
 import type { DepositIssue, DepositSummary } from '../../backend/deposit/types.js';
 import { formatPublicationDate } from '../../publicationDateCalendar.js';
+import type { RegisterDoiFetcher } from './DoiRow.js';
+import { SUBMISSION_DETAIL_FORM_ACTIONS } from './SubmissionDetails.utils.js';
 
 type SectionProps = {
   title: string;
@@ -82,15 +84,21 @@ type RegisterDoiDialogProps = {
   summary: DepositSummary;
   warnings: DepositIssue[];
   resolvesTo: string;
+  fetcher: RegisterDoiFetcher;
 };
 
-/** What Crossref would receive, read-only. Registering itself arrives with CN-2581. */
+/**
+ * What Crossref will receive, and the Register action. Closes by unmounting once the row shows
+ * the registration.
+ */
 export function RegisterDoiDialog({
   prefix,
   summary,
   warnings,
   resolvesTo,
+  fetcher,
 }: RegisterDoiDialogProps) {
+  const submitting = fetcher.state !== 'idle';
   return (
     <ui.Dialog>
       <ui.DialogTrigger asChild>
@@ -115,7 +123,7 @@ export function RegisterDoiDialog({
                 ? 'None'
                 : authorList.format(summary.authors.map((author) => author.name))}
             </DetailRow>
-            {/* Every kind is deposited as posted_content (depositTypeForKind). */}
+            {/* Preprint is the only DOI content type a kind can be eligible with. */}
             <DetailRow label="Content type">Preprint</DetailRow>
             <DetailRow label="Publication date">{formatPublicationDate(summary.date)}</DetailRow>
             <DetailRow label="Registration agency">Crossref</DetailRow>
@@ -154,10 +162,20 @@ export function RegisterDoiDialog({
         />
         <ui.DialogFooter>
           <ui.DialogClose asChild>
-            <ui.Button variant="outline">Cancel</ui.Button>
+            <ui.Button variant="outline" disabled={submitting}>
+              Cancel
+            </ui.Button>
           </ui.DialogClose>
-          {/* Disabled until the register action lands (CN-2581). */}
-          <ui.Button disabled>Register DOI</ui.Button>
+          <fetcher.Form method="post">
+            <input
+              type="hidden"
+              name="formAction"
+              value={SUBMISSION_DETAIL_FORM_ACTIONS.registerDoi}
+            />
+            <ui.Button type="submit" disabled={submitting}>
+              {submitting ? 'Registering…' : 'Register DOI'}
+            </ui.Button>
+          </fetcher.Form>
         </ui.DialogFooter>
       </ui.DialogContent>
     </ui.Dialog>

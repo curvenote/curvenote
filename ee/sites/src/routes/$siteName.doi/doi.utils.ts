@@ -1,4 +1,5 @@
 import { SITE_DOI_CONFIG_MODE, SITE_DOI_CONFIG_STATUS } from '@curvenote/scms-core';
+import type { DoiContentType } from '@curvenote/scms-core';
 
 /** What the `doi` action answers; every card types its fetcher with it. */
 export type DoiActionData = { error?: string; info?: string };
@@ -39,3 +40,9 @@ export function methodLabel(mode: string): string {
     ? 'Curvenote-managed'
     : 'Organization-managed';
 }
+
+export const DOI_CONTENT_TYPE_LABELS: Record<DoiContentType, string> = {
+  PREPRINT: 'Preprint',
+};
+
+export const DOI_VERSIONING_DOCS_URL = 'https://docs.curvenote.com/publish';

@@ -1,7 +1,7 @@
 import { data } from 'react-router';
 import { z } from 'zod';
 import { zfd } from 'zod-form-data';
-import { scopes } from '@curvenote/scms-core';
+import { DOI_CONTENT_TYPE, scopes } from '@curvenote/scms-core';
 import type { SiteContextWithUser } from '@curvenote/scms-server';
 import { getPrismaClient, userHasScope, validateFormData } from '@curvenote/scms-server';
 import { crossrefCredentialsFromConfig } from '../../backend/crossref/client.server.js';
@@ -11,6 +11,7 @@ import {
   configureCustom,
   updatePrefix,
 } from '../../backend/doi/configure.server.js';
+import { updateKindMapping } from '../../backend/doi/kinds.server.js';
 import { bindRole, resetConfig, unlinkRole } from '../../backend/doi/role.server.js';
 import { DOI_INTENTS } from '../../backend/doi/types.js';
 import type { DoiDeps, DoiIntent, DoiResult } from '../../backend/doi/types.js';
@@ -23,6 +24,18 @@ const PrefixSchema = zfd.formData({ prefix: Text });
 const PrefixOccSchema = zfd.formData({ prefix: Text, occ: Occ });
 const RoleOccSchema = zfd.formData({ role: Text, occ: Occ });
 const OccSchema = zfd.formData({ occ: Occ });
+const KindMappingSchema = zfd.formData({
+  kinds: zfd.json(
+    z
+      .array(
+        z.object({
+          kindId: z.string().min(1).max(100),
+          doiContentType: z.enum(DOI_CONTENT_TYPE).nullable(),
+        }),
+      )
+      .max(500),
+  ),
+});
 
 // Setup and reset swap the card that submitted them, so the new page is the confirmation: a
 // success message there would only flash before the card unmounts.
@@ -30,6 +43,7 @@ const INFO: Partial<Record<DoiIntent, string>> = {
   'update-prefix': 'Prefix updated.',
   'bind-role': 'Role validated and linked. This Site can now register DOIs.',
   'unlink-role': 'Role unlinked. The Site is waiting for a role again.',
+  'update-kind-mapping': 'Eligible Submission Kinds saved.',
 };
 
 async function isCustomPrefixEnabled(ctx: SiteContextWithUser) {
@@ -76,6 +90,10 @@ async function dispatch(
     case 'reset': {
       const { occ } = validateFormData(OccSchema, formData);
       return resetConfig(deps, { siteId, actor, occ });
+    }
+    case 'update-kind-mapping': {
+      const { kinds } = validateFormData(KindMappingSchema, formData);
+      return updateKindMapping(deps, { siteId, actor, kinds });
     }
     default:
       // A new intent must get its own case: never fall through to a destructive one.

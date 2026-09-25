@@ -39,7 +39,11 @@ function row() {
       site_id: 'site-a',
       date_published: '2022-10-11T00:00:00.000Z',
       doi: null,
-      kind: { name: 'Article' },
+      kind: {
+        name: 'Article',
+        content: { title: 'Research Article' },
+        doi_content_type: 'PREPRINT',
+      },
       site: { doiConfig: { status: 'ACTIVE', prefix: '10.62329', role: null } },
     },
   };
@@ -95,6 +99,7 @@ describe('loadDepositSource', () => {
     expect((source.abstractMdast as any).children[0].data.part).toBe('abstract');
     expect(source.citations).toEqual({ a: '10.1/x' });
     expect(source.doiConfig).toEqual({ status: 'ACTIVE', prefix: '10.62329', role: null });
+    expect(source.kind).toEqual({ title: 'Research Article', doiContentType: 'PREPRINT' });
     expect(cdn.getConfig).toHaveBeenCalledWith({
       cdn: 'https://prv.curvenote.dev/',
       key: 'abc.def',
@@ -117,6 +122,18 @@ describe('loadDepositSource', () => {
     });
     const source = await loadDepositSource(ctx, 'sv-1');
     expect(source.abstractMdast).toEqual({ type: 'root', children: [] });
+  });
+
+  it('reads a DOI content type Curvenote does not have as not eligible', async () => {
+    server.prisma.submissionVersion.findUnique.mockResolvedValue({
+      ...row(),
+      submission: {
+        ...row().submission,
+        kind: { name: 'Article', content: {}, doi_content_type: 'JOURNAL_ARTICLE' },
+      },
+    });
+    const source = await loadDepositSource(ctx, 'sv-1');
+    expect(source.kind).toEqual({ title: 'Article', doiContentType: null });
   });
 
   it('keeps the CDN licence when metadata.license is a bare string', async () => {

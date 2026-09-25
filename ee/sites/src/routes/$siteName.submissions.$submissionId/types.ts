@@ -1,5 +1,7 @@
 import type { TagDTO } from '@curvenote/common';
 import type { WorkflowTransition } from '@curvenote/scms-core';
+import type { DoiReadiness } from '../../backend/deposit/readiness.server.js';
+import type { DoiFailureReason } from '../../backend/registration/failure.js';
 import type { SiteLayoutSite } from '../$siteName/layout.format.server.js';
 
 /** Site fields for submission detail chrome and preview URLs. */
@@ -63,6 +65,8 @@ export type SubmissionDetailActivity = {
   date_published?: string;
   job_failure?: SubmissionDetailJobFailure;
   tag_change?: { label: string; action: 'added' | 'removed' };
+  /** `reason` is readable, `detail` is Crossref's own words, `warning` is a registration's warning. */
+  doi_registration?: { doi: string; reason?: string; detail?: string; warning?: string };
 };
 
 export type SubmissionDetailSubmission = {
@@ -119,6 +123,27 @@ export type SiteWithAppData = {
   restricted: boolean;
   data: SiteAppData | null;
 };
+
+/** The submission's DOI registration, shaped for the detail page's DOI row states. */
+export type DoiRegistrationView =
+  | {
+      status: 'SUBMITTING';
+      doi: string;
+      /** `sending`: the deposit is not with Crossref yet. `waiting`: Crossref has it. */
+      phase: 'sending' | 'waiting';
+      /** In progress again after a failed attempt ("Resubmitting…"). */
+      retried: boolean;
+    }
+  | { status: 'FAILED'; doi: string; reason: DoiFailureReason }
+  | { status: 'REGISTERED'; doi: string; warning?: string };
+
+/** What the DOI row shows. The loader picks exactly one, so the row never weighs one against another. */
+export type DoiRowState =
+  | { kind: 'registration'; registration: DoiRegistrationView }
+  | { kind: 'doi'; doi: string }
+  /** Streamed, not awaited: the readiness check reads the CDN. */
+  | { kind: 'register'; readiness: Promise<DoiReadiness> }
+  | { kind: 'none' };
 
 export type MagicLinkWithAccessCount = {
   id: string;

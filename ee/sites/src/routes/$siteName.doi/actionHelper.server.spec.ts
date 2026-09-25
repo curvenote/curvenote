@@ -6,6 +6,7 @@ import { scopes } from '@curvenote/scms-core';
 import { crossrefCredentialsFromConfig } from '../../backend/crossref/client.server.js';
 import { getSiteWithAppData } from '../../backend/db.server.js';
 import { configureCustom } from '../../backend/doi/configure.server.js';
+import { updateKindMapping } from '../../backend/doi/kinds.server.js';
 import { bindRole } from '../../backend/doi/role.server.js';
 import { runDoiIntent } from './actionHelper.server.js';
 
@@ -23,6 +24,7 @@ vi.mock('../../backend/doi/configure.server.js', () => ({
   configureCustom: vi.fn(),
   updatePrefix: vi.fn(),
 }));
+vi.mock('../../backend/doi/kinds.server.js', () => ({ updateKindMapping: vi.fn() }));
 vi.mock('../../backend/doi/role.server.js', () => ({
   bindRole: vi.fn(),
   unlinkRole: vi.fn(),
@@ -127,5 +129,36 @@ describe('runDoiIntent', () => {
   it('answers 400 when occ is missing on an intent that needs it', async () => {
     const result = (await runDoiIntent(ctx, form({ intent: 'reset' }))) as Rejection;
     expect(result.init.status).toBe(400);
+  });
+
+  it('saves the kind mapping with the kinds from the form', async () => {
+    vi.mocked(updateKindMapping).mockResolvedValue({ ok: true, config: null });
+    const kinds = [
+      { kindId: 'kind-1', doiContentType: 'PREPRINT' },
+      { kindId: 'kind-2', doiContentType: null },
+    ];
+
+    const result = await runDoiIntent(
+      ctx,
+      form({ intent: 'update-kind-mapping', kinds: JSON.stringify(kinds) }),
+    );
+
+    expect(result).toEqual({ info: 'Eligible Submission Kinds saved.' });
+    expect(vi.mocked(updateKindMapping).mock.calls[0][1]).toEqual({
+      siteId: 'site-a',
+      actor: { userId: 'user-1', isSystemAdmin: false },
+      kinds,
+    });
+  });
+
+  it('answers 400 to a DOI content type Curvenote does not have', async () => {
+    const kinds = [{ kindId: 'kind-1', doiContentType: 'JOURNAL_ARTICLE' }];
+    const result = (await runDoiIntent(
+      ctx,
+      form({ intent: 'update-kind-mapping', kinds: JSON.stringify(kinds) }),
+    )) as Rejection;
+
+    expect(result.init.status).toBe(400);
+    expect(vi.mocked(updateKindMapping)).not.toHaveBeenCalled();
   });
 });

@@ -14,6 +14,8 @@ export const DOI_ERRORS = {
   pairTaken: 'This prefix and role are already linked to another Site. Nothing was saved.',
   hasRegistrations:
     'This Site has DOIs registered or being registered, so its DOI setup cannot be unlinked or reset. Nothing was saved.',
+  unknownKind:
+    'A Submission Kind on this page no longer exists. Reload the page. Nothing was saved.',
 } as const;
 
 /** Another request changed or removed the row since the page loaded. */

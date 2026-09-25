@@ -50,9 +50,13 @@ export async function assembleDeposit(
     resourceUrl: `${opts.resourceUrlBase}/${opts.doi}`,
     depositor: { name: DEPOSITOR_NAME, email: opts.depositorEmail },
   });
-  if (!mapped.preprint) {
+  // The mapper blocks a kind with no content type; the null check narrows it for the return.
+  const contentType = source.kind.doiContentType;
+  if (!mapped.preprint || !contentType) {
     return { issues: mapped.issues, doi: opts.doi };
   }
+  // PREPRINT is the only DOI content type, and Crossref's posted_content. preprintXml writes no
+  // `type` attribute: `preprint` is the schema default for posted_content.
   const xml = new DoiBatch(mapped.batch, preprintXml(mapped.preprint)).toXml();
-  return { xml, summary: mapped.summary, issues: mapped.issues, doi: opts.doi };
+  return { xml, contentType, summary: mapped.summary, issues: mapped.issues, doi: opts.doi };
 }

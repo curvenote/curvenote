@@ -16,7 +16,9 @@ const ISSUE_SENTENCES: Record<string, string> = {
   not_found: CONTENT_NOT_FOUND,
 };
 
-export type DoiBlockers = { kind: 'site_not_active' } | { kind: 'submission'; sentences: string[] };
+/** `setup` is fixed on DOI Registration; `action` labels the link there. */
+export type DoiBlockers =
+  { kind: 'setup'; sentence: string; action: string } | { kind: 'submission'; sentences: string[] };
 
 function joinWithAnd(items: string[]): string {
   if (items.length <= 1) {
@@ -26,12 +28,16 @@ function joinWithAnd(items: string[]): string {
 }
 
 /**
- * The DOI row's copy for a blocked deposit. Site setup hides the rest: until it's done, fixing
- * the submission doesn't unblock anything.
+ * The DOI row's copy for a blocked deposit. Site setup hides the rest, and so does a kind that
+ * cannot receive DOIs: until either is fixed, fixing the submission doesn't unblock anything.
  */
 export function describeDoiBlockers(issues: DepositIssue[]): DoiBlockers {
   if (issues.some((issue) => issue.code === 'site_not_active')) {
-    return { kind: 'site_not_active' };
+    return { kind: 'setup', sentence: 'DOIs are not set up for this site.', action: 'Set up DOIs' };
+  }
+  const notEligible = issues.find((issue) => issue.code === 'kind_not_eligible');
+  if (notEligible) {
+    return { kind: 'setup', sentence: notEligible.message, action: 'Open DOI Registration' };
   }
   const fields = issues.map((issue) => MISSING_FIELDS[issue.code]).filter(Boolean);
   const others = issues
