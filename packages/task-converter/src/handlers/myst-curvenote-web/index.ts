@@ -25,7 +25,9 @@ function listContentFiles(
 ): Array<FileMetadataSectionItem & { pathKey: string }> {
   const fromFiles = metadata?.files ?? {};
   const fromFoundry = metadata?.foundry?.files ?? {};
-  const merged = { ...fromFiles, ...fromFoundry };
+  // Prefer metadata.files: SCMS merges foundry → files and attaches signedUrl before dispatch.
+  // Spreading foundry last would overwrite those signed entries and break downloads.
+  const merged = { ...fromFoundry, ...fromFiles };
   return Object.entries(merged)
     .filter(([, entry]) => entry && typeof entry === 'object')
     .map(([pathKey, entry]) => ({ ...(entry as FileMetadataSectionItem), pathKey }));
