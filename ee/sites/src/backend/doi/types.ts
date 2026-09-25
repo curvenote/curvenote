@@ -24,7 +24,6 @@ export type DoiConfigSnapshot = {
 
 /** What the screen needs. Forms post `occ` back so a stale tab is refused. */
 export type SiteDoiConfigDTO = DoiConfigSnapshot & {
-  attention_reason: string | null;
   occ: number;
 };
 

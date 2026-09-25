@@ -36,7 +36,6 @@ export function row(overrides: Partial<DoiConfigRow> = {}): DoiConfigRow {
     prefix_owner: 'Elemental Microscopy Society',
     role: null,
     status: 'PENDING_ROLE',
-    attention_reason: null,
     occ: 0,
     ...overrides,
   };
@@ -51,6 +50,7 @@ export function makeDeps(fetchMock: ReturnType<typeof fakeFetch> = fakeFetch()) 
       update: vi.fn(),
       delete: vi.fn(),
     },
+    doiRegistration: { findFirst: vi.fn().mockResolvedValue(null) },
     activity: { create: vi.fn() },
     $transaction: vi.fn(async (fn: (tx: unknown) => unknown) => fn(prisma)),
   };

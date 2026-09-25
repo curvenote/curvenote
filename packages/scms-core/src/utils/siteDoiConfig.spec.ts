@@ -8,10 +8,6 @@ describe('SiteDoiConfig constants', () => {
   });
 
   test('status matches the values documented on SiteDoiConfig.status', () => {
-    expect(Object.values(SITE_DOI_CONFIG_STATUS)).toEqual([
-      'PENDING_ROLE',
-      'ACTIVE',
-      'NEEDS_ATTENTION',
-    ]);
+    expect(Object.values(SITE_DOI_CONFIG_STATUS)).toEqual(['PENDING_ROLE', 'ACTIVE']);
   });
 });

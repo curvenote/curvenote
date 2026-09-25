@@ -6,7 +6,6 @@ describe('statusPresentation', () => {
   test.each([
     ['PENDING_ROLE', 'Waiting for Crossref role', 'warning'],
     ['ACTIVE', 'Active', 'success'],
-    ['NEEDS_ATTENTION', 'Needs attention', 'destructive'],
   ])('%s', (status, label, variant) => {
     expect(statusPresentation(status)).toMatchObject({ label, variant });
   });

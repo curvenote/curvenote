@@ -24,18 +24,6 @@ export function DoiStatusCard({ config }: DoiStatusCardProps) {
         <ui.Badge variant={status.variant}>{status.label}</ui.Badge>
       </div>
       {status.description && <p className="text-sm font-light">{status.description}</p>}
-      {config.attention_reason && (
-        <ui.SimpleAlert
-          type="error"
-          size="compact"
-          message={
-            <>
-              <span className="font-medium">Crossref said:</span>{' '}
-              <code className="text-xs break-words">{config.attention_reason}</code>
-            </>
-          }
-        />
-      )}
       <div className="grid gap-3 sm:grid-cols-2">
         <Fact label="Registration method" value={methodLabel(config.mode)} />
         <Fact label="Registration agency" value="Crossref" />

@@ -146,6 +146,21 @@ describe('unlinkRole', () => {
     expect(await unlinkRole(deps, input)).toMatchObject({ status: 409 });
     expect(wroteNothing(prisma)).toBe(true);
   });
+
+  test('refuses while the site has registered or registering DOIs', async () => {
+    const { deps, prisma } = makeDeps();
+    prisma.siteDoiConfig.findUnique.mockResolvedValue(row({ status: 'ACTIVE', role: 'elms' }));
+    prisma.doiRegistration.findFirst.mockResolvedValue({ id: 'reg-1' });
+
+    expect(await unlinkRole(deps, { siteId: 'site-a', actor: admin, occ: 0 })).toMatchObject({
+      status: 409,
+      error: DOI_ERRORS.hasRegistrations,
+    });
+    expect(prisma.doiRegistration.findFirst.mock.calls[0][0]).toMatchObject({
+      where: { site_id: 'site-a', status: { in: ['REGISTERED', 'SUBMITTING'] } },
+    });
+    expect(wroteNothing(prisma)).toBe(true);
+  });
 });
 
 describe('resetConfig', () => {
@@ -202,6 +217,21 @@ describe('resetConfig', () => {
     const { deps, prisma } = makeDeps();
     prisma.siteDoiConfig.findUnique.mockResolvedValue(existing);
     expect(await resetConfig(deps, input)).toMatchObject({ status: 409 });
+    expect(wroteNothing(prisma)).toBe(true);
+  });
+
+  test('refuses while the site has registered or registering DOIs', async () => {
+    const { deps, prisma } = makeDeps();
+    prisma.siteDoiConfig.findUnique.mockResolvedValue(row({ status: 'ACTIVE', role: 'elms' }));
+    prisma.doiRegistration.findFirst.mockResolvedValue({ id: 'reg-1' });
+
+    expect(await resetConfig(deps, { siteId: 'site-a', actor: admin, occ: 0 })).toMatchObject({
+      status: 409,
+      error: DOI_ERRORS.hasRegistrations,
+    });
+    expect(prisma.doiRegistration.findFirst.mock.calls[0][0]).toMatchObject({
+      where: { site_id: 'site-a', status: { in: ['REGISTERED', 'SUBMITTING'] } },
+    });
     expect(wroteNothing(prisma)).toBe(true);
   });
 });

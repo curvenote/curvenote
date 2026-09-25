@@ -2,6 +2,7 @@ import { uuidv7 } from 'uuidv7';
 import type { Prisma } from '@curvenote/scms-db';
 import { ActivityType } from '@curvenote/scms-db';
 import type { SiteDoiConfigMode, SiteDoiConfigStatus } from '@curvenote/scms-core';
+import { DOI_REGISTRATION_STATUS } from '@curvenote/scms-core';
 import { writeSiteDoiConfigActivity } from './activity.server.js';
 import { STALE } from './errors.js';
 import type {
@@ -24,7 +25,6 @@ const SELECT = {
   prefix_owner: true,
   role: true,
   status: true,
-  attention_reason: true,
   occ: true,
 } as const;
 
@@ -37,7 +37,7 @@ export function toSnapshot(row: DoiConfigRow): DoiConfigSnapshot {
 }
 
 export function toDTO(row: DoiConfigRow): SiteDoiConfigDTO {
-  return { ...toSnapshot(row), attention_reason: row.attention_reason, occ: row.occ };
+  return { ...toSnapshot(row), occ: row.occ };
 }
 
 export function dbGetDoiConfig(client: Reader, siteId: string) {
@@ -122,6 +122,26 @@ export async function dbGetRoleBoundBy(client: DoiDeps['prisma'], siteId: string
   }
   const { display_name, username } = activity.activity_by;
   return { name: display_name ?? username ?? 'Unknown user', date: activity.date_created };
+}
+
+/**
+ * A registered DOI must keep resolving under the prefix and role it was deposited with, and a
+ * deposit in flight must be able to finish polling. Either one blocks unlink and reset.
+ */
+export async function dbSiteHasLiveRegistrations(
+  client: Pick<DoiDeps['prisma'], 'doiRegistration'>,
+  siteId: string,
+) {
+  const found = await client.doiRegistration.findFirst({
+    where: {
+      site_id: siteId,
+      status: {
+        in: [DOI_REGISTRATION_STATUS.REGISTERED, DOI_REGISTRATION_STATUS.SUBMITTING],
+      },
+    },
+    select: { id: true },
+  });
+  return found !== null;
 }
 
 type DoiWrite = {

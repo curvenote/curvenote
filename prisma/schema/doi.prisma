@@ -6,24 +6,89 @@
 /// because Prisma cannot express partial indexes. CURVENOTE_PREFIX sites all share Curvenote's
 /// prefix and role, so they are excluded from it.
 model SiteDoiConfig {
-  id               String  @id
-  date_created     String
-  date_modified    String
-  site             Site    @relation(fields: [site_id], references: [id])
-  site_id          String  @unique
+  id            String  @id
+  date_created  String
+  date_modified String
+  site          Site    @relation(fields: [site_id], references: [id])
+  site_id       String  @unique
   /// CURVENOTE_PREFIX | CUSTOM_PREFIX (constants in scms-core)
-  mode             String
+  mode          String
   /// e.g. "10.62329".
-  prefix           String
+  prefix        String
   /// Owner name from the public Crossref prefixes API, stored at entry time
   /// and refreshed when the role is bound.
-  prefix_owner     String?
+  prefix_owner  String?
   /// Crossref role that deposits under `prefix`; login is `<depositor email>/<role>`.
   /// Never entered by the customer: set by a system admin from the Crossref email.
-  role             String?
-  /// PENDING_ROLE | ACTIVE | NEEDS_ATTENTION (constants in scms-core)
-  status           String  @default("PENDING_ROLE")
-  /// Crossref's message when a deposit is rejected for this site (set in phase 2).
-  attention_reason String?
-  occ              Int     @default(0)
+  role          String?
+  /// PENDING_ROLE | ACTIVE (constants in scms-core). A failed deposit, a Crossref 401 included,
+  /// is that registration's failure and never touches the site.
+  status        String  @default("PENDING_ROLE")
+  occ           Int     @default(0)
+}
+
+/// The DOI a submission owns. One per submission: it survives new versions and retries.
+model DoiRegistration {
+  id            String       @id
+  date_created  String
+  date_modified String
+  submission    Submission   @relation(fields: [submission_id], references: [id])
+  submission_id String       @unique
+  site          Site         @relation(fields: [site_id], references: [id])
+  site_id       String
+  /// Stored as generated: lowercase suffix, no URL. The resolver matches by equality
+  /// and doi-utils does not fold case, so generation is where case is fixed.
+  doi           String       @unique
+  prefix        String
+  /// DRAFT | SUBMITTING | REGISTERED | FAILED (constants in scms-core)
+  status        String       @default("DRAFT")
+  registered_at String?
+  /// Who started it. Null once that user is deleted: the registration outlives them.
+  created_by    User?        @relation(fields: [created_by_id], references: [id], onDelete: SetNull)
+  created_by_id String?
+  attempts      DoiDeposit[]
+  occ           Int          @default(0)
+
+  @@index([site_id])
+}
+
+/// One deposit attempt, i.e. one HTTP POST. A retry is a new row with a new
+/// file name and batch id; the DOI comes from the registration.
+model DoiDeposit {
+  id                     String            @id
+  date_created           String
+  date_modified          String
+  registration           DoiRegistration   @relation(fields: [registration_id], references: [id])
+  registration_id        String
+  /// Which version's metadata went out.
+  submission_version     SubmissionVersion @relation(fields: [submission_version_id], references: [id])
+  submission_version_id  String
+  /// Tracking key for submissionDownload. Crossref keeps it verbatim.
+  file_name              String            @unique
+  /// <doi_batch_id> in the XML; arrives back as CROSSREF-EXTERNAL-ID on callbacks.
+  doi_batch_id           String            @unique
+  /// Crossref's own <submission_id>, known once the deposit is queued.
+  crossref_submission_id String?
+  /// Storage key of the deposited XML, in `KnownBuckets.prv`. The path convention inside
+  /// the bucket is settled in CN-2509, which is also what first writes this column.
+  xml_path               String
+  /// PENDING | QUEUED | SUCCEEDED | FAILED (constants in scms-core). A record Crossref
+  /// accepted with a warning is SUCCEEDED with `warning` set.
+  status                 String            @default("PENDING")
+  /// Raw submissionDownload result, kept for the timeline and for debugging.
+  result_xml_path        String?
+  error                  String?
+  /// Crossref's message when the record went in with a warning. Shown on the DOI page as
+  /// "registered with a warning" (CN-2511); `error` is for FAILED, this is for SUCCEEDED.
+  warning                String?
+  /// The job currently acting on this attempt: the CROSSREF_DEPOSIT job that posts it, then each
+  /// CROSSREF_POLL job as it is enqueued (a reschedule is a new Job row with `scheduled_at`; the
+  /// queue never re-runs a finished job). Updated in the transaction that enqueues the job, so the
+  /// DOI page has a live handle; earlier jobs are found through their payload.
+  job_id                 String?
+  completed_at           String?
+
+  /// Powers the attempts timeline on the DOI page.
+  @@index([registration_id, date_created(sort: Desc)])
+  @@index([submission_version_id])
 }

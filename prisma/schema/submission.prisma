@@ -98,6 +98,7 @@ model SubmissionVersion {
   tags                String[]          @default([])
   occ                 Int               @default(0) // Optimistic concurrency control
   searchProjection    SubmissionSearch?
+  doiDeposits         DoiDeposit[]
 
   @@index([tags], type: Gin)
   /// Dedicated FK index for Submission → versions joins. Composite indexes on
@@ -169,6 +170,12 @@ model Submission {
   /// extending the same function rather than introducing new triggers.
   is_listed       Boolean             @default(false)
   tags            TagsInSubmissions[]
+  doiRegistration DoiRegistration?
+  /// The DOI this submission owns once registered. Copy of `DoiRegistration.doi`,
+  /// set when the registration first succeeds. Read by DOI resolution.
+  /// Not unique: existing work DOIs may move here later (D2), and today the same
+  /// DOI can be published on more than one site (resolution picks the latest).
+  doi             String?
 
   @@index([site_id])
   /// Backs lookups and deletes keyed by work (`Submission.work_id` FK has no
@@ -185,6 +192,10 @@ model Submission {
   /// work with an in-progress draft has `is_listed = FALSE` but must still be
   /// listed).
   @@index([site_id, date_published(sort: Desc), date_created(sort: Desc)])
+  /// DOI resolution probes this first (`sites.doi`, `doi.resolve`); work DOIs are tried only when
+  /// no submission owns the DOI.
+  /// Built CONCURRENTLY in migration 20260918151018_add_submission_doi_index.
+  @@index([doi])
 }
 
 model Slug {

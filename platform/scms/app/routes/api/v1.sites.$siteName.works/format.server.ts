@@ -6,7 +6,7 @@ import type {
   SubmissionKindSummaryDTO,
 } from '@curvenote/common';
 import { concatSiteWorkTags, formatDate } from '@curvenote/common';
-import { coerceToObject, makePaginationLinks } from '@curvenote/scms-core';
+import { coerceToObject, makePaginationLinks, resolveSiteWorkDoi } from '@curvenote/scms-core';
 // Value imports: called at runtime — must NOT be converted to `import type`
 // (doing so elides them and yields a `ReferenceError` at call time).
 import { createArticleUrl, signPrivateUrls } from '@curvenote/scms-server';
@@ -43,6 +43,7 @@ export const siteWorkListingSelect = {
     select: {
       id: true,
       date_published: true,
+      doi: true,
       kind: { select: { id: true, name: true, content: true, default: true } },
       collection: {
         select: { id: true, name: true, slug: true, workflow: true, content: true, open: true },
@@ -111,7 +112,11 @@ export function formatSiteWorkDTO(
   const submission_version_id = dbo.id;
   const version_id = dbo.work_version.id;
   const work_id = dbo.work_version.work_id;
-  const doi = dbo.work_version.doi ?? dbo.submission.work?.doi;
+  const doi = resolveSiteWorkDoi({
+    submission: dbo.submission.doi,
+    workVersion: dbo.work_version.doi,
+    work: dbo.submission.work?.doi,
+  });
   const slug = dbo.submission.slugs.reduce(
     (primarySlug, next) => (primarySlug ? primarySlug : next.primary ? next.slug : undefined),
     undefined as string | undefined,

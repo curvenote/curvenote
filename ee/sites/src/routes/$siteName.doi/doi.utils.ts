@@ -31,14 +31,6 @@ export function statusPresentation(status: string): {
       description: 'DOI registration is configured for this Site.',
     };
   }
-  if (status === SITE_DOI_CONFIG_STATUS.NEEDS_ATTENTION) {
-    return {
-      label: 'Needs attention',
-      variant: 'destructive',
-      description:
-        'Crossref rejected the last deposit under this prefix and role. No DOI was registered. Curvenote has been notified.',
-    };
-  }
   return { label: status, variant: 'neutral', description: '' };
 }
 

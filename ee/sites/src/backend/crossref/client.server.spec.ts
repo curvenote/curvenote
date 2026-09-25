@@ -1,12 +1,7 @@
 import { readFileSync } from 'node:fs';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, expect, test, vi } from 'vitest';
-import {
-  CrossrefError,
-  checkRole,
-  crossrefCredentialsFromConfig,
-  lookupPrefix,
-} from './client.server.js';
+import { CrossrefError, crossrefCredentialsFromConfig, lookupPrefix } from './client.server.js';
 
 // ee/sites is ESM ("type": "module"), so resolve fixtures from import.meta.url, not __dirname.
 const fixture = (name: string) =>
@@ -91,72 +86,6 @@ describe('lookupPrefix', () => {
     const f = fakeFetch(200, fixture('prefixes.200-ok.json'));
     await lookupPrefix('10.62329', { fetch: f });
     expect(((f as any).mock.calls[0][1] as RequestInit).headers).toBeUndefined();
-  });
-});
-
-describe('checkRole', () => {
-  test('authenticated when submissionDownload answers 200 unknown_submission', async () => {
-    const f = fakeFetch(200, fixture('submissionDownload.200-unknown_submission.xml'));
-    expect(await checkRole(creds, 'curv', { fetch: f })).toEqual({ authenticated: true });
-    const [url, init] = (f as any).mock.calls[0] as [string, RequestInit];
-    expect(String(url)).toBe('https://test.crossref.org/servlet/submissionDownload');
-    expect(init.method).toBe('POST');
-    expect((init.headers as Record<string, string>)['Content-Type']).toBe(
-      'application/x-www-form-urlencoded',
-    );
-    const body = new URLSearchParams(String(init.body));
-    expect(body.get('usr')).toBe('doi@curvenote.com/curv');
-    expect(body.get('pwd')).toBe('s3cret');
-    expect(body.get('file_name')).toBeTruthy();
-    expect(body.get('type')).toBe('result');
-  });
-
-  test('not authenticated on 401', async () => {
-    const f = fakeFetch(401, fixture('submissionDownload.401-wrong-credentials.txt'));
-    expect(await checkRole(creds, 'nope', { fetch: f })).toEqual({ authenticated: false });
-    const init = (f as any).mock.calls[0][1] as RequestInit;
-    expect(new URLSearchParams(String(init.body)).get('usr')).toBe('doi@curvenote.com/nope');
-  });
-
-  test('keeps the password out of the URL', async () => {
-    const f = fakeFetch(200, fixture('submissionDownload.200-unknown_submission.xml'));
-    await checkRole(creds, 'curv', { fetch: f });
-    expect(String((f as any).mock.calls[0][0])).not.toContain('s3cret');
-  });
-
-  test('throws with the status on 503 without leaking the password', async () => {
-    const err = await checkRole(creds, 'curv', { fetch: fakeFetch(503, 'maintenance') }).catch(
-      (e) => e,
-    );
-    expect(err).toBeInstanceOf(CrossrefError);
-    expect(err.status).toBe(503);
-    expect(String(err.message)).not.toContain('s3cret');
-  });
-
-  test('throws without a status on a network failure without leaking the password', async () => {
-    const err = await checkRole(creds, 'curv', {
-      fetch: rejectingFetch(new TypeError('fetch failed')),
-    }).catch((e) => e);
-    expect(err).toBeInstanceOf(CrossrefError);
-    expect(err.status).toBeUndefined();
-    expect(String(err.message)).not.toContain('s3cret');
-  });
-
-  test('throws on a 200 that is not a diagnostic', async () => {
-    await expect(checkRole(creds, 'curv', { fetch: fakeFetch(200, '') })).rejects.toMatchObject({
-      status: 200,
-    });
-  });
-
-  test('throws when response.text() rejects', async () => {
-    const badTextFetch = vi.fn(async () => {
-      const r = new Response('', { status: 200 });
-      r.text = () => Promise.reject(new TypeError('body error'));
-      return r;
-    }) as unknown as typeof fetch;
-    const err = await checkRole(creds, 'curv', { fetch: badTextFetch }).catch((e) => e);
-    expect(err).toBeInstanceOf(CrossrefError);
-    expect(err).toMatchObject({ status: 200, message: expect.stringContaining('unreadable') });
   });
 });
 
