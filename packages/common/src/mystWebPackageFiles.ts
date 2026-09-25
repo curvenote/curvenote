@@ -15,7 +15,7 @@ export function resolveMystWebSourcesPrefix(metadata: unknown): string {
 
 /**
  * Relative path inside the MyST package (e.g. manuscript.md, media/x.png),
- * or null if the entry is outside `{cdnKey/}?{sourcesPrefix}/`.
+ * or null if the entry does not start with `{cdnKey/}?{sourcesPrefix}/`.
  */
 export function mystWebPackageRelativePath(
   fullPath: string,
@@ -28,11 +28,9 @@ export function mystWebPackageRelativePath(
   candidates.push(`${sourcesPrefix}/`);
 
   for (const marker of candidates) {
-    const idx = full.indexOf(marker);
-    if (idx >= 0) {
-      const rel = full.slice(idx + marker.length);
-      return rel.length > 0 ? rel : null;
-    }
+    if (!full.startsWith(marker)) continue;
+    const rel = full.slice(marker.length);
+    return rel.length > 0 ? rel : null;
   }
   return null;
 }
