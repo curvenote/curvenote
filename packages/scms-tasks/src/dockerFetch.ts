@@ -109,6 +109,17 @@ export async function dockerAwareFetch(
   const lib = parsed.protocol === 'https:' ? https : http;
   const signal = init?.signal ?? (input instanceof Request ? input.signal : undefined);
 
+  // Node 26 starts the TCP handshake inside http.request(). Destroying the
+  // ClientRequest in the same turn still leaves that socket open, so an
+  // already-aborted signal must never create the request.
+  if (signal?.aborted) {
+    const reason =
+      signal.reason instanceof Error ? signal.reason.message : 'The operation was aborted';
+    throw new Error(
+      `dockerAwareFetch ${method} ${parsed.host} via ${connectHost}:${port} failed: ${reason}`,
+    );
+  }
+
   let incoming: http.IncomingMessage;
   try {
     incoming = await new Promise<http.IncomingMessage>((resolve, reject) => {
@@ -145,12 +156,11 @@ export async function dockerAwareFetch(
         }
         rejectOnce(err);
       });
+      // Node 26 can assign the socket after destroy(); tear that socket down too.
+      req.on('socket', (socket) => {
+        if (signal?.aborted) socket.destroy();
+      });
       if (signal) {
-        if (signal.aborted) {
-          req.destroy();
-          rejectOnce(signal.reason ?? new Error('The operation was aborted'));
-          return;
-        }
         signal.addEventListener('abort', onAbort, { once: true });
       }
       if (bodyStream) {
