@@ -1,9 +1,9 @@
 /**
  * HAT conversion handler: myst-curvenote-web
  *
- * Existing MyST package on the work-version CDN (manuscript.md, references.bib,
- * media/…) → Curvenote site build → upload `_build/site` under existing cdn_key
- * → merge `myst` into contains.
+ * Pull `{cdn_key}/{sourcesPrefix}/` (default `sources/myst`) — manuscript.md,
+ * myst.yml, references.bib, media/ — run `curvenote build`, upload `_build/site`
+ * to the CDN key root (docx-style), merge `myst` into contains.
  */
 
 import fs from 'node:fs/promises';
@@ -12,10 +12,10 @@ import { WorkContents } from '@curvenote/scms-core';
 import type { FileMetadataSectionItem } from '../../payload.js';
 import { downloadFile } from '../../utils.js';
 import type { ConversionHandler } from '../types.js';
-import { writeSiteProjectFiles } from '../docx-pandoc-myst-web/writeSiteProjectFiles.js';
 import { runSiteBuild } from '../docx-pandoc-myst-web/runSiteBuild.js';
 import { copyProjectSourcesIntoSite } from '../docx-pandoc-myst-web/copyProjectSourcesIntoSite.js';
-import { INDEX_MD } from '../docx-pandoc-myst-pdf/constants.js';
+
+const DEFAULT_SOURCES_PREFIX = 'sources/myst';
 
 function listContentFiles(
   metadata: {
@@ -31,17 +31,34 @@ function listContentFiles(
     .map(([pathKey, entry]) => ({ ...(entry as FileMetadataSectionItem), pathKey }));
 }
 
-function pickByName(
-  files: Array<FileMetadataSectionItem & { pathKey: string }>,
-  name: string,
-): (FileMetadataSectionItem & { pathKey: string }) | undefined {
-  const lower = name.toLowerCase();
-  return files.find(
-    (f) =>
-      f.name?.toLowerCase() === lower ||
-      f.path?.toLowerCase().endsWith(`/${lower}`) ||
-      f.path?.toLowerCase().endsWith(lower),
-  );
+function resolveSourcesPrefix(metadata: unknown): string {
+  const foundry = (metadata as { foundry?: { publish?: { sourcesPrefix?: string } } } | null)
+    ?.foundry;
+  const prefix = foundry?.publish?.sourcesPrefix?.trim();
+  return prefix && prefix.length > 0 ? prefix.replace(/\/$/, '') : DEFAULT_SOURCES_PREFIX;
+}
+
+/** Relative path inside the package (e.g. manuscript.md, media/x.png). */
+function packageRelativePath(
+  file: FileMetadataSectionItem & { pathKey: string },
+  sourcesPrefix: string,
+  cdnKey: string,
+): string | null {
+  const full = (file.path || file.pathKey || '').replace(/^\/+/, '');
+  const markers = [`${cdnKey}/${sourcesPrefix}/`, `${sourcesPrefix}/`];
+  for (const marker of markers) {
+    const idx = full.indexOf(marker);
+    if (idx >= 0) return full.slice(idx + marker.length);
+  }
+  // Fallback: known package filenames at any depth
+  const name = file.name || path.basename(full);
+  if (name === 'manuscript.md' || name === 'myst.yml' || name === 'references.bib') {
+    return name;
+  }
+  if (full.includes('/media/')) {
+    return `media/${name}`;
+  }
+  return null;
 }
 
 export const runMystCurvenoteWeb: ConversionHandler = async (ctx) => {
@@ -53,45 +70,34 @@ export const runMystCurvenoteWeb: ConversionHandler = async (ctx) => {
     throw new Error('Work version is missing cdn/cdn_key; cannot upload web article to storage');
   }
 
+  const sourcesPrefix = resolveSourcesPrefix(workVersion.metadata);
   const files = listContentFiles(workVersion.metadata);
-  const manuscript = pickByName(files, 'manuscript.md');
-  if (!manuscript) {
-    throw new Error('No manuscript.md found in metadata.files or metadata.foundry.files');
-  }
-  if (!manuscript.signedUrl) {
-    throw new Error('manuscript.md has no signedUrl; cannot download for site build');
-  }
-
-  await client.jobs.running(res, 'Preparing Curvenote project files...');
-  await writeSiteProjectFiles(workVersion, workDir);
-
-  await client.jobs.running(res, 'Downloading MyST manuscript...');
-  const manuscriptLocal = await downloadFile(manuscript, workDir, 'manuscript.md');
-  // Site build expects index.md as the project root document.
-  await fs.copyFile(manuscriptLocal, path.join(workDir, INDEX_MD));
-
-  const bib = pickByName(files, 'references.bib');
-  if (bib?.signedUrl) {
-    await client.jobs.running(res, 'Downloading references.bib...');
-    await downloadFile(bib, workDir, 'references.bib');
-  }
-
-  const mediaFiles = files.filter((f) => {
-    if (f.name === 'manuscript.md' || f.name === 'references.bib') return false;
-    return (
-      f.path?.includes('/media/') === true ||
-      f.pathKey.includes('/media/') ||
-      f.pathKey.includes('/media')
+  const packageFiles = files
+    .map((f) => {
+      const rel = packageRelativePath(f, sourcesPrefix, workVersion.cdn_key!);
+      return rel ? { file: f, rel } : null;
+    })
+    .filter((x): x is { file: FileMetadataSectionItem & { pathKey: string }; rel: string } =>
+      Boolean(x),
     );
-  });
-  if (mediaFiles.length > 0) {
-    await client.jobs.running(res, `Downloading ${mediaFiles.length} media file(s)...`);
-    await fs.mkdir(path.join(workDir, 'media'), { recursive: true });
-    for (const media of mediaFiles) {
-      if (!media.signedUrl) continue;
-      const basename = media.name || path.basename(media.path || media.pathKey);
-      await downloadFile(media, path.join(workDir, 'media'), basename);
+
+  const hasManuscript = packageFiles.some((p) => p.rel === 'manuscript.md');
+  const hasMystYml = packageFiles.some((p) => p.rel === 'myst.yml');
+  if (!hasManuscript) {
+    throw new Error(`No manuscript.md under ${sourcesPrefix}`);
+  }
+  if (!hasMystYml) {
+    throw new Error(`No myst.yml under ${sourcesPrefix}; Foundry must emit project frontmatter`);
+  }
+
+  await client.jobs.running(res, `Downloading MyST package from ${sourcesPrefix}...`);
+  for (const { file, rel } of packageFiles) {
+    if (!file.signedUrl) {
+      throw new Error(`Missing signedUrl for ${rel}`);
     }
+    const destDir = path.join(workDir, path.dirname(rel));
+    await fs.mkdir(destDir, { recursive: true });
+    await downloadFile(file, destDir, path.basename(rel));
   }
 
   await client.jobs.running(res, 'Building web article...');
