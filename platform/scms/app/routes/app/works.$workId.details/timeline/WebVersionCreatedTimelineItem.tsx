@@ -209,19 +209,24 @@ export function WebVersionCreatedTimelineItem({
   available,
   linkedJobsByWorkVersionIdPromise,
 }: WebVersionCreatedTimelineItemProps) {
+  const rowProps = {
+    dateCreated,
+    dateModified,
+    workVersionId,
+    basePath,
+    previewSignature,
+    available,
+  };
+
   return (
     <Suspense fallback={null}>
-      <Await resolve={linkedJobsByWorkVersionIdPromise} errorElement={null}>
+      <Await
+        resolve={linkedJobsByWorkVersionIdPromise}
+        // A jobs-query failure still renders from site availability and the preview token.
+        errorElement={<WebVersionRow {...rowProps} linkedJobs={[]} />}
+      >
         {(resolved: LinkedJobsByWorkVersionId) => (
-          <WebVersionRow
-            dateCreated={dateCreated}
-            dateModified={dateModified}
-            workVersionId={workVersionId}
-            basePath={basePath}
-            previewSignature={previewSignature}
-            available={available}
-            linkedJobs={resolved[workVersionId] ?? []}
-          />
+          <WebVersionRow {...rowProps} linkedJobs={resolved[workVersionId] ?? []} />
         )}
       </Await>
     </Suspense>
