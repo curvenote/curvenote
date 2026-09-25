@@ -103,7 +103,7 @@ function WebVersionRow({
       ? buildWorkVersionPreviewHref(workVersionPreviewUrl, workVersionId, previewSignature)
       : null;
 
-  const message = phase === 'available' ? <>Web Version Created</> : <>Web Version</>;
+  const message = phase === 'available' ? <>Web Version Ready</> : <>Web Version</>;
 
   let status: ReactNode = null;
   if (phase === 'queued') {
