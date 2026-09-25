@@ -84,13 +84,15 @@ function WebVersionRow({
       ? buildWorkVersionPreviewHref(workVersionPreviewUrl, workVersionId, previewSignature)
       : null;
 
-  let message: ReactNode;
+  const message = model.phase === 'available' ? <>Web Version Created</> : <>Web Version</>;
+
+  let status: ReactNode = null;
   if (model.phase === 'building') {
-    message = <>Web Version building…</>;
+    status = <span className="text-muted-foreground">building…</span>;
   } else if (model.phase === 'failed') {
-    message = (
-      <span className="inline-flex items-center gap-1.5 min-w-0">
-        <span>Web Version failed</span>
+    status = (
+      <span className="inline-flex items-center gap-1 text-destructive">
+        <span>failed</span>
         {model.error ? (
           <ui.SimpleTooltip
             title={model.error}
@@ -101,7 +103,7 @@ function WebVersionRow({
           >
             <button
               type="button"
-              className="inline-flex shrink-0 text-muted-foreground hover:text-foreground"
+              className="inline-flex shrink-0 text-destructive hover:opacity-80"
               aria-label="Conversion error details"
             >
               <InfoIcon className="size-3.5" aria-hidden />
@@ -110,16 +112,17 @@ function WebVersionRow({
         ) : null}
       </span>
     );
-  } else {
-    message = <>Web Version Created</>;
   }
 
   const date = (
-    <DateWithPopover
-      date={model.dateCreated}
-      dateCreated={model.dateCreated}
-      dateModified={model.dateModified}
-    />
+    <span className="inline-flex items-center gap-2">
+      {status}
+      <DateWithPopover
+        date={model.dateCreated}
+        dateCreated={model.dateCreated}
+        dateModified={model.dateModified}
+      />
+    </span>
   );
 
   const trailing = (
