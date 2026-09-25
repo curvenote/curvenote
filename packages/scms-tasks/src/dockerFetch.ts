@@ -138,13 +138,6 @@ export async function dockerAwareFetch(
       const onAbort = () => {
         req.destroy();
       };
-      if (signal) {
-        if (signal.aborted) {
-          rejectOnce(signal.reason ?? new Error('The operation was aborted'));
-          return;
-        }
-        signal.addEventListener('abort', onAbort, { once: true });
-      }
       req.on('error', (err) => {
         if (signal?.aborted) {
           rejectOnce(signal.reason ?? new Error('The operation was aborted'));
@@ -152,6 +145,14 @@ export async function dockerAwareFetch(
         }
         rejectOnce(err);
       });
+      if (signal) {
+        if (signal.aborted) {
+          req.destroy();
+          rejectOnce(signal.reason ?? new Error('The operation was aborted'));
+          return;
+        }
+        signal.addEventListener('abort', onAbort, { once: true });
+      }
       if (bodyStream) {
         bodyStream.on('error', rejectOnce);
         bodyStream.pipe(req);

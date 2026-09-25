@@ -1,5 +1,6 @@
 /* eslint-disable import/no-extraneous-dependencies */
 import http from 'node:http';
+import type { Socket } from 'node:net';
 import { afterEach, describe, expect, it } from 'vitest';
 import { dockerAwareFetch } from './dockerFetch.js';
 
@@ -15,6 +16,7 @@ describe('dockerAwareFetch', () => {
       servers.splice(0).map(
         (s) =>
           new Promise<void>((resolve, reject) => {
+            s.closeAllConnections();
             s.close((err) => (err ? reject(err) : resolve()));
           }),
       ),
@@ -72,5 +74,34 @@ describe('dockerAwareFetch', () => {
     await expect(pending).rejects.toThrow(/abort|failed/i);
     // Drain any late socket errors before afterEach closes the server.
     await new Promise((r) => setTimeout(r, 50));
+  });
+
+  it('destroys the socket when the signal is already aborted', async () => {
+    process.env.TASK_CONVERTER_REWRITE_LOCALHOST = '1';
+    process.env.TASK_CONVERTER_HOST_GATEWAY = '127.0.0.1';
+
+    const open = new Set<Socket>();
+    const server = http.createServer((_req, res) => {
+      res.writeHead(200);
+      res.end('should-not-be-read');
+    });
+    server.on('connection', (socket) => {
+      open.add(socket);
+      socket.on('close', () => open.delete(socket));
+    });
+    servers.push(server);
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const addr = server.address();
+    if (!addr || typeof addr === 'string') throw new Error('expected TCP address');
+
+    const controller = new AbortController();
+    controller.abort();
+
+    await expect(
+      dockerAwareFetch(`http://127.0.0.1:${addr.port}/object`, { signal: controller.signal }),
+    ).rejects.toThrow(/abort/i);
+
+    await new Promise((r) => setTimeout(r, 50));
+    expect(open.size).toBe(0);
   });
 });
