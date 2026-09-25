@@ -1,7 +1,13 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, expect, it } from 'vitest';
 import type { EligibleKindDTO } from '../../backend/doi/types.js';
-import { draftFromKinds, draftToField, isDraftDirty, setEligible } from './eligibleKinds.utils.js';
+import {
+  draftFromKinds,
+  draftToField,
+  isDraftDirty,
+  savedMappingKey,
+  setEligible,
+} from './eligibleKinds.utils.js';
 
 const kinds: EligibleKindDTO[] = [
   { id: 'kind-article', title: 'Article', doiContentType: null, locked: false },
@@ -27,11 +33,19 @@ describe('eligible kinds draft', () => {
     expect(isDraftDirty(added, draftFromKinds(kinds))).toBe(false);
   });
 
-  it('writes every shown kind into the form field', () => {
+  it('writes only the kinds the admin changed into the form field', () => {
     const draft = setEligible(draftFromKinds(kinds), 'kind-article', true);
     expect(JSON.parse(draftToField(kinds, draft))).toEqual([
       { kindId: 'kind-article', doiContentType: 'PREPRINT' },
-      { kindId: 'kind-blog', doiContentType: 'PREPRINT' },
     ]);
+  });
+
+  it('keys the saved mapping by each kind and its content type', () => {
+    const saved = savedMappingKey(kinds);
+    expect(savedMappingKey(kinds)).toBe(saved);
+    expect(savedMappingKey([{ ...kinds[0], doiContentType: 'PREPRINT' }, kinds[1]])).not.toBe(
+      saved,
+    );
+    expect(savedMappingKey([kinds[0]])).not.toBe(saved);
   });
 });

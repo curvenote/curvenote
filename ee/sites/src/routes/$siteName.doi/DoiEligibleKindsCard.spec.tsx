@@ -20,13 +20,11 @@ vi.mock('react-router', () => ({
 }));
 
 import { DoiEligibleKindsCard } from './DoiEligibleKindsCard.js';
-import type { EligibleKindDTO, SiteDoiConfigDTO } from '../../backend/doi/types.js';
-
-const config = { occ: 3 } as SiteDoiConfigDTO;
+import type { EligibleKindDTO } from '../../backend/doi/types.js';
 
 function render(kinds: EligibleKindDTO[]) {
   return renderToStaticMarkup(
-    <DoiEligibleKindsCard config={config} kinds={kinds} kindsUrl="/app/sites/science/kinds" />,
+    <DoiEligibleKindsCard kinds={kinds} kindsUrl="/app/sites/science/kinds" />,
   );
 }
 
@@ -41,6 +39,7 @@ describe('DoiEligibleKindsCard', () => {
     expect(html.match(/aria-checked="true"/g)).toHaveLength(1);
     expect(html).toContain('href="/app/sites/science/kinds"');
     expect(html).toContain('name="intent" value="update-kind-mapping"');
+    expect(html).not.toContain('name="occ"');
   });
 
   it('lays the kinds out under Submission Kind and DOI content type columns', () => {

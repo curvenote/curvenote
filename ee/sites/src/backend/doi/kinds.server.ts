@@ -1,12 +1,6 @@
 import type { DoiContentType } from '@curvenote/scms-core';
 import { kindTitle } from '../kinds.utils.js';
-import {
-  commitDoiWrite,
-  dbGetDoiConfig,
-  dbUpdateDoiConfig,
-  isExpectedRow,
-  toDTO,
-} from './db.server.js';
+import { commitDoiWrite, dbGetDoiConfig, toDTO } from './db.server.js';
 import { DOI_ERRORS, STALE, kindLocked } from './errors.js';
 import {
   dbGetSiteKinds,
@@ -22,14 +16,15 @@ export type KindMappingEntry = { kindId: string; doiContentType: DoiContentType 
 export type UpdateKindMappingInput = {
   siteId: string;
   actor: DoiActor;
-  occ: number;
-  /** The kinds the form showed. A kind it did not list keeps its value. */
+  /** The kinds the admin changed. A kind it does not list keeps its value. */
   kinds: KindMappingEntry[];
 };
 
 /**
  * Which Submission Kinds can register DOIs, and as what. Any site admin can change it once the
- * site has a DOI setup, including one still waiting for its role.
+ * site has a DOI setup, including one still waiting for its role. Each kind is last-write-wins,
+ * like its name: the form sends only the kinds the admin changed, so a stale tab cannot put back
+ * a kind it did not touch.
  */
 export async function updateKindMapping(
   deps: DoiDeps,
@@ -37,7 +32,7 @@ export async function updateKindMapping(
 ): Promise<DoiResult> {
   const { siteId } = input;
   const existing = await dbGetDoiConfig(deps.prisma, siteId);
-  if (!isExpectedRow(existing, { occ: input.occ })) {
+  if (!existing) {
     return STALE;
   }
   const current = new Map(
@@ -56,7 +51,8 @@ export async function updateKindMapping(
     return { ok: true, config: toDTO(existing) };
   }
   // The page disables locked kinds; this refuses a crafted or outdated form. A registration that
-  // starts after this read bumps the config occ, so the write below answers stale instead.
+  // starts between this read and the write can still see its kind change: its DOI keeps the
+  // content type recorded on its registration.
   const locked = await dbKindIdsWithLiveRegistrations(deps.prisma, {
     siteId,
     kindIds: changes.map(({ kind }) => kind.id),
@@ -74,12 +70,10 @@ export async function updateKindMapping(
     deps,
     { siteId, actor: input.actor, action: 'update-kind-mapping', onUnique: STALE, kinds: snapshot },
     async (tx) => {
-      // Starting a registration bumps this occ too, so the two serialize on the config row.
-      const row = await dbUpdateDoiConfig(tx, existing, {});
       for (const { kind, value } of changes) {
         await dbSetKindContentType(tx, { siteId, kindId: kind.id, value });
       }
-      return row;
+      return existing;
     },
   );
 }

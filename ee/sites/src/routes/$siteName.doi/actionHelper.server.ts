@@ -25,7 +25,6 @@ const PrefixOccSchema = zfd.formData({ prefix: Text, occ: Occ });
 const RoleOccSchema = zfd.formData({ role: Text, occ: Occ });
 const OccSchema = zfd.formData({ occ: Occ });
 const KindMappingSchema = zfd.formData({
-  occ: Occ,
   kinds: zfd.json(
     z
       .array(
@@ -93,8 +92,8 @@ async function dispatch(
       return resetConfig(deps, { siteId, actor, occ });
     }
     case 'update-kind-mapping': {
-      const { occ, kinds } = validateFormData(KindMappingSchema, formData);
-      return updateKindMapping(deps, { siteId, actor, occ, kinds });
+      const { kinds } = validateFormData(KindMappingSchema, formData);
+      return updateKindMapping(deps, { siteId, actor, kinds });
     }
     default:
       // A new intent must get its own case: never fall through to a destructive one.

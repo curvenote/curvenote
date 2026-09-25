@@ -23,13 +23,12 @@ const blog = { id: 'kind-blog', name: 'Blog', content: {}, doi_content_type: 'PR
 function setup() {
   const made = makeDeps();
   made.prisma.siteDoiConfig.findUnique.mockResolvedValue(config);
-  made.prisma.siteDoiConfig.update.mockResolvedValue({ ...config, occ: 4 });
   made.prisma.submissionKind.findMany.mockResolvedValue([article, blog]);
   return made;
 }
 
-function input(kinds: KindMappingEntry[], occ = 3) {
-  return { siteId: 'site-a', actor, occ, kinds };
+function input(kinds: KindMappingEntry[]) {
+  return { siteId: 'site-a', actor, kinds };
 }
 
 const bothPreprint: KindMappingEntry[] = [
@@ -38,13 +37,13 @@ const bothPreprint: KindMappingEntry[] = [
 ];
 
 describe('updateKindMapping', () => {
-  test('saves only the kinds that changed, bumps the config occ and logs them', async () => {
+  test('saves only the kinds that changed, leaves the DOI setup alone and logs them', async () => {
     const { deps, prisma } = setup();
 
     const result = await updateKindMapping(deps, input(bothPreprint));
 
-    expect(result).toMatchObject({ ok: true, config: { occ: 4 } });
-    expect(prisma.siteDoiConfig.update.mock.calls[0][0].where).toEqual({ id: 'cfg-1', occ: 3 });
+    expect(result).toMatchObject({ ok: true, config: { occ: 3 } });
+    expect(prisma.siteDoiConfig.update).not.toHaveBeenCalled();
     expect(prisma.submissionKind.update).toHaveBeenCalledTimes(1);
     expect(prisma.submissionKind.update.mock.calls[0][0]).toMatchObject({
       where: { id: 'kind-article', site_id: 'site-a' },
@@ -126,15 +125,6 @@ describe('updateKindMapping', () => {
 
     expect(result).toMatchObject({ status: 409, error: DOI_ERRORS.stale });
     expect(prisma.activity.create).not.toHaveBeenCalled();
-  });
-
-  test('answers stale to an old occ', async () => {
-    const { deps, prisma } = setup();
-
-    const result = await updateKindMapping(deps, input(bothPreprint, 2));
-
-    expect(result).toMatchObject({ status: 409, error: DOI_ERRORS.stale });
-    expect(wroteNothing(prisma)).toBe(true);
   });
 
   test('answers stale when the DOI setup was reset meanwhile', async () => {

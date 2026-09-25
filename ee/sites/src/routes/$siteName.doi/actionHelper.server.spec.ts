@@ -131,7 +131,7 @@ describe('runDoiIntent', () => {
     expect(result.init.status).toBe(400);
   });
 
-  it('saves the kind mapping with the kinds and occ from the form', async () => {
+  it('saves the kind mapping with the kinds from the form', async () => {
     vi.mocked(updateKindMapping).mockResolvedValue({ ok: true, config: null });
     const kinds = [
       { kindId: 'kind-1', doiContentType: 'PREPRINT' },
@@ -140,14 +140,13 @@ describe('runDoiIntent', () => {
 
     const result = await runDoiIntent(
       ctx,
-      form({ intent: 'update-kind-mapping', occ: '3', kinds: JSON.stringify(kinds) }),
+      form({ intent: 'update-kind-mapping', kinds: JSON.stringify(kinds) }),
     );
 
     expect(result).toEqual({ info: 'Eligible Submission Kinds saved.' });
     expect(vi.mocked(updateKindMapping).mock.calls[0][1]).toEqual({
       siteId: 'site-a',
       actor: { userId: 'user-1', isSystemAdmin: false },
-      occ: 3,
       kinds,
     });
   });
@@ -156,7 +155,7 @@ describe('runDoiIntent', () => {
     const kinds = [{ kindId: 'kind-1', doiContentType: 'JOURNAL_ARTICLE' }];
     const result = (await runDoiIntent(
       ctx,
-      form({ intent: 'update-kind-mapping', occ: '3', kinds: JSON.stringify(kinds) }),
+      form({ intent: 'update-kind-mapping', kinds: JSON.stringify(kinds) }),
     )) as Rejection;
 
     expect(result.init.status).toBe(400);

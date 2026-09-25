@@ -4,10 +4,16 @@ import { Link, useFetcher } from 'react-router';
 import { Info } from 'lucide-react';
 import { DOI_CONTENT_TYPE, cn, isDoiContentType, ui } from '@curvenote/scms-core';
 import type { DoiContentType } from '@curvenote/scms-core';
-import type { EligibleKindDTO, SiteDoiConfigDTO } from '../../backend/doi/types.js';
+import type { EligibleKindDTO } from '../../backend/doi/types.js';
 import { DOI_CONTENT_TYPE_LABELS } from './doi.utils.js';
 import type { DoiActionData } from './doi.utils.js';
-import { draftFromKinds, draftToField, isDraftDirty, setEligible } from './eligibleKinds.utils.js';
+import {
+  draftFromKinds,
+  draftToField,
+  isDraftDirty,
+  savedMappingKey,
+  setEligible,
+} from './eligibleKinds.utils.js';
 import { LockedLabel } from './LockedLabel.js';
 
 const COLUMNS = 'grid grid-cols-2 gap-4 items-center px-4';
@@ -81,7 +87,6 @@ function EligibleKindRow({
 }
 
 type EligibleKindsFormProps = {
-  config: SiteDoiConfigDTO;
   kinds: EligibleKindDTO[];
   fetcher: FetcherWithComponents<DoiActionData>;
   /** The note under the table; it sits between the rows and the actions. */
@@ -89,14 +94,13 @@ type EligibleKindsFormProps = {
 };
 
 /** Owns the draft. The card owns the fetcher, so its toast survives the remount after a save. */
-function EligibleKindsForm({ config, kinds, fetcher, children }: EligibleKindsFormProps) {
+function EligibleKindsForm({ kinds, fetcher, children }: EligibleKindsFormProps) {
   const [draft, setDraft] = useState(() => draftFromKinds(kinds));
   const dirty = isDraftDirty(kinds, draft);
   const busy = fetcher.state !== 'idle';
   return (
     <fetcher.Form method="POST" className="m-0 space-y-4">
       <input type="hidden" name="intent" value="update-kind-mapping" />
-      <input type="hidden" name="occ" value={config.occ} />
       <input type="hidden" name="kinds" value={draftToField(kinds, draft)} />
       <div className="overflow-hidden rounded-sm border border-stone-200 dark:border-stone-600">
         <div
@@ -159,13 +163,12 @@ function NewKindsNote({ kindsUrl }: NewKindsNoteProps) {
 }
 
 type DoiEligibleKindsCardProps = {
-  config: SiteDoiConfigDTO;
   kinds: EligibleKindDTO[];
   /** The site's Submission Kinds settings. */
   kindsUrl: string;
 };
 
-export function DoiEligibleKindsCard({ config, kinds, kindsUrl }: DoiEligibleKindsCardProps) {
+export function DoiEligibleKindsCard({ kinds, kindsUrl }: DoiEligibleKindsCardProps) {
   const fetcher = useFetcher<DoiActionData>();
   useEffect(() => {
     if (fetcher.state === 'idle' && fetcher.data) {
@@ -192,8 +195,9 @@ export function DoiEligibleKindsCard({ config, kinds, kindsUrl }: DoiEligibleKin
           {note}
         </>
       ) : (
-        // Keyed by occ: a save remounts the form, which reseeds the draft without an effect.
-        <EligibleKindsForm key={config.occ} config={config} kinds={kinds} fetcher={fetcher}>
+        // Keyed by the saved mapping: a save remounts the form, which reseeds the draft without an
+        // effect.
+        <EligibleKindsForm key={savedMappingKey(kinds)} kinds={kinds} fetcher={fetcher}>
           {note}
         </EligibleKindsForm>
       )}

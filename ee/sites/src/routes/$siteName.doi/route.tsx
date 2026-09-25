@@ -115,11 +115,7 @@ export default function DoiRegistration({ loaderData }: { loaderData: LoaderData
               roleBoundBy={roleBoundBy}
             />
             <DoiVersioningPolicyCard />
-            <DoiEligibleKindsCard
-              config={config}
-              kinds={kinds}
-              kindsUrl={`/app/sites/${site.name}/kinds`}
-            />
+            <DoiEligibleKindsCard kinds={kinds} kindsUrl={`/app/sites/${site.name}/kinds`} />
             {isSystemAdmin && config.mode === SITE_DOI_CONFIG_MODE.CUSTOM_PREFIX && (
               <DoiRoleAdminCard config={config} />
             )}
