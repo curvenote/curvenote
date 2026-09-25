@@ -8,6 +8,7 @@ import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { Readable } from 'node:stream';
+import { dockerAwareFetch } from './dockerFetch.js';
 
 /** Stage request body (same shape as SiteUploadRequest). */
 export type StageRequest = {
@@ -119,7 +120,7 @@ export async function stageUploadRequest(
   baseUrl: string,
   getAuthHeaders: () => Promise<Record<string, string>>,
   request: StageRequest,
-  fetchFn: typeof fetch = fetch,
+  fetchFn: typeof fetch = dockerAwareFetch,
 ): Promise<UploadStagingDTO> {
   const url = `${baseUrl.replace(/\/$/, '')}/uploads/stage`;
   const headers = await getAuthHeaders();
@@ -141,7 +142,7 @@ export async function commitUploads(
   baseUrl: string,
   getAuthHeaders: () => Promise<Record<string, string>>,
   data: CommitRequest,
-  fetchFn: typeof fetch = fetch,
+  fetchFn: typeof fetch = dockerAwareFetch,
 ): Promise<void> {
   const url = `${baseUrl.replace(/\/$/, '')}/uploads/commit`;
   const headers = await getAuthHeaders();
@@ -356,7 +357,7 @@ export async function uploadSingleFileToCdn(
     resume?: boolean;
     loggingOnlyMode?: boolean;
   },
-  fetchFn: typeof fetch = fetch,
+  fetchFn: typeof fetch = dockerAwareFetch,
 ): Promise<UploadResult> {
   const { cdn, cdnKey, localPath, storagePath, loggingOnlyMode = false, resume = false } = opts;
   if (!cdn?.trim() || !cdnKey?.trim()) {
@@ -432,7 +433,7 @@ export async function uploadFolderToCdn(
     loggingOnlyMode?: boolean;
     concurrency?: number;
   },
-  fetchFn: typeof fetch = fetch,
+  fetchFn: typeof fetch = dockerAwareFetch,
 ): Promise<UploadFolderResult> {
   const {
     cdn,
