@@ -31,6 +31,7 @@ export type SubmissionDetailRow = {
   id: string;
   date_created: string;
   date_published: string | null;
+  doi: string | null;
   submitted_by: { id: string; display_name: string | null };
   kind: { id: string; name: string; content: Prisma.JsonValue };
   collection: {
@@ -107,6 +108,7 @@ export async function dbLoadSubmissionDetail(
         id: true,
         date_created: true,
         date_published: true,
+        doi: true,
         submitted_by: { select: { id: true, display_name: true } },
         kind: { select: { id: true, name: true, content: true } },
         collection: {

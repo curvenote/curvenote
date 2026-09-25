@@ -9,6 +9,7 @@ import {
   getWorkflow,
   primitives,
   registerExtensionWorkflows,
+  resolveSiteWorkDoi,
 } from '@curvenote/scms-core';
 import { redirect } from 'react-router';
 import { GitBranch, Globe } from 'lucide-react';
@@ -80,6 +81,20 @@ export const loader = async (args: Route.LoaderArgs) => {
   // Determine active/published version - use the first version if no active_version_id
   const activeVersion = submissionVersions[0];
 
+  // The same DOI the site's public pages show for each version: a DOI registered on the
+  // submission wins over the one the work arrived with.
+  const workDoi = viewingVersion.work_version.work.doi;
+  const activeVersionDoi = resolveSiteWorkDoi({
+    submission: submission.doi,
+    workVersion: activeVersion.work_version.doi,
+    work: workDoi,
+  });
+  const viewingVersionDoi = resolveSiteWorkDoi({
+    submission: submission.doi,
+    workVersion: viewingVersion.work_version.doi,
+    work: workDoi,
+  });
+
   // Get work title for metadata
   const workTitle = ctx.workDTO.title;
 
@@ -116,6 +131,8 @@ export const loader = async (args: Route.LoaderArgs) => {
     submissionVersions,
     viewingVersion,
     activeVersion,
+    activeVersionDoi,
+    viewingVersionDoi,
     workflow,
     workTitle,
     defaultDomain: defaultDomain?.hostname || null,
@@ -149,6 +166,8 @@ export default function WorkSubmissionDetailRoute({ loaderData }: Route.Componen
     submissionVersions,
     viewingVersion,
     activeVersion,
+    activeVersionDoi,
+    viewingVersionDoi,
     workflow,
     workTitle,
     defaultDomain,
@@ -180,7 +199,7 @@ export default function WorkSubmissionDetailRoute({ loaderData }: Route.Componen
       activeVersion.submission.submitted_by.id ||
       'Unknown',
     status: activeVersion.status,
-    doi: work.doi || null,
+    doi: activeVersionDoi ?? null,
     workKey: work.key || null,
     isActive: true,
     isViewing: viewingVersion.id === activeVersion.id,
@@ -198,7 +217,7 @@ export default function WorkSubmissionDetailRoute({ loaderData }: Route.Componen
             viewingVersion.submission.submitted_by.id ||
             'Unknown',
           status: viewingVersion.status,
-          doi: work.doi || null,
+          doi: viewingVersionDoi ?? null,
           workKey: work.key || null,
           isActive: false,
           isViewing: true,

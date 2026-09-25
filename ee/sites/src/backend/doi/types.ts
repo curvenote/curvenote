@@ -1,3 +1,4 @@
+import type { DoiContentType } from '@curvenote/scms-core';
 import type { Prisma } from '@curvenote/scms-db';
 import type { getPrismaClient } from '@curvenote/scms-server';
 import type { CrossrefCredentials } from '../crossref/client.server.js';
@@ -10,6 +11,7 @@ export const DOI_INTENTS = [
   'bind-role',
   'unlink-role',
   'reset',
+  'update-kind-mapping',
 ] as const;
 export type DoiIntent = (typeof DOI_INTENTS)[number];
 
@@ -47,3 +49,17 @@ export type DoiDeps = {
 };
 export type DoiActor = { userId: string; isSystemAdmin: boolean };
 export type DoiTx = Prisma.TransactionClient;
+
+/** What the activity log keeps of a kind whose DOI content type a write changed. */
+export type KindMappingSnapshot = {
+  id: string;
+  name: string;
+  doi_content_type: DoiContentType | null;
+};
+
+/** One row of the Eligible Submission Kinds card. */
+export type EligibleKindDTO = {
+  id: string;
+  title: string;
+  doiContentType: DoiContentType | null;
+};

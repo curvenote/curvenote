@@ -55,8 +55,23 @@ beforeEach(() => {
 
 describe('loadDoiReadiness', () => {
   it('reports not_configured without assembling when api.crossref is missing', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
     expect(await loadDoiReadiness(ctxWith(undefined), 'sub-1')).toEqual({ kind: 'not_configured' });
     expect(deposit.assembleDeposit).not.toHaveBeenCalled();
+    expect(error).not.toHaveBeenCalled();
+    error.mockRestore();
+  });
+
+  it('logs an invalid api.crossref block and still reports not_configured', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const ctx = ctxWith({ ...crossref, host: 'https://test.crossref.org' });
+    expect(await loadDoiReadiness(ctx, 'sub-1')).toEqual({ kind: 'not_configured' });
+    expect(error).toHaveBeenCalledWith(
+      '[doi] api.crossref is invalid',
+      expect.stringContaining('allowTestHost'),
+    );
+    expect(deposit.assembleDeposit).not.toHaveBeenCalled();
+    error.mockRestore();
   });
 
   it('reports not_published without assembling when no version is PUBLISHED', async () => {

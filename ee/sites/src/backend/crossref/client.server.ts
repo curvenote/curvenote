@@ -8,18 +8,40 @@ import { PREFIX_RE } from './prefix.js';
 
 const PREFIXES_API = 'https://api.crossref.org/prefixes';
 const TIMEOUT_MS = 10_000;
+const TEST_HOST = 'https://test.crossref.org';
+const TEST_HOSTNAME = new URL(TEST_HOST).hostname;
 
-const CredentialsSchema = z.object({
-  host: z.httpUrl().transform((host) => host.replace(/\/$/, '')),
-  depositorEmail: z.email(),
-  password: z.string().min(1),
-  /** Curvenote's own prefix: used by CURVENOTE_PREFIX sites and refused on CUSTOM_PREFIX ones. */
-  prefix: z.string().regex(PREFIX_RE),
-  /** Curvenote's own role: used by CURVENOTE_PREFIX sites and as the control login on a 401. */
-  role: z.string().min(1),
-  /** Landing page base the deposited DOIs resolve to: `<resourceUrlBase>/<doi>`. */
-  resourceUrlBase: z.httpUrl().transform((url) => url.replace(/\/$/, '')),
-});
+const CredentialsSchema = z
+  .object({
+    host: z.httpUrl().transform((host) => host.replace(/\/$/, '')),
+    /** Production deployments never set this; the test host is refused without it. */
+    allowTestHost: z.boolean().optional(),
+    depositorEmail: z.email(),
+    password: z.string().min(1),
+    /** Curvenote's own prefix: used by CURVENOTE_PREFIX sites and refused on CUSTOM_PREFIX ones. */
+    prefix: z.string().regex(PREFIX_RE),
+    /** Curvenote's own role: used by CURVENOTE_PREFIX sites and as the control login on a 401. */
+    role: z.string().min(1),
+    /** Landing page base the deposited DOIs resolve to: `<resourceUrlBase>/<doi>`. */
+    resourceUrlBase: z.httpUrl().transform((url) => url.replace(/\/$/, '')),
+  })
+  .superRefine((value, ctx) => {
+    // `host` may still be the raw, unparseable input here when it already failed its own
+    // z.httpUrl() check; that failure is reported on its own path, so this check just skips it.
+    let hostname: string;
+    try {
+      hostname = new URL(value.host).hostname;
+    } catch {
+      return;
+    }
+    if (hostname === TEST_HOSTNAME && !value.allowTestHost) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['host'],
+        message: 'test.crossref.org needs api.crossref.allowTestHost: true',
+      });
+    }
+  });
 
 const PrefixResponseSchema = z.object({
   message: z.object({ name: z.string().min(1), member: z.string().min(1) }),
@@ -113,7 +135,10 @@ export async function lookupPrefix(prefix: string, opts?: LookupOpts) {
 export function crossrefCredentialsFromConfig(config: AppConfig): CrossrefCredentials {
   const parsed = CredentialsSchema.safeParse(config.api?.crossref);
   if (!parsed.success) {
-    const fields = parsed.error.issues.map((i) => ['api.crossref', ...i.path].join('.'));
+    const fields = parsed.error.issues.map((issue) => {
+      const field = ['api.crossref', ...issue.path].join('.');
+      return issue.code === 'custom' ? `${field} (${issue.message})` : field;
+    });
     throw new Error(`Crossref config is missing or invalid: ${fields.join(', ')}`);
   }
   return parsed.data;

@@ -1,6 +1,6 @@
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { describe, expect, test } from 'vitest';
-import { SITE_DOI_CONFIG_MODE, SITE_DOI_CONFIG_STATUS } from './siteDoiConfig.js';
+import { SITE_DOI_CONFIG_MODE, SITE_DOI_CONFIG_STATUS, isDoiContentType } from './siteDoiConfig.js';
 
 describe('SiteDoiConfig constants', () => {
   test('mode matches the values documented on SiteDoiConfig.mode', () => {
@@ -9,5 +9,15 @@ describe('SiteDoiConfig constants', () => {
 
   test('status matches the values documented on SiteDoiConfig.status', () => {
     expect(Object.values(SITE_DOI_CONFIG_STATUS)).toEqual(['PENDING_ROLE', 'ACTIVE']);
+  });
+});
+
+describe('isDoiContentType', () => {
+  test('accepts a DOI content type Curvenote has', () => {
+    expect(isDoiContentType('PREPRINT')).toBe(true);
+  });
+
+  test.each([[null], [''], ['JOURNAL_ARTICLE'], ['toString'], [42]])('rejects %j', (value) => {
+    expect(isDoiContentType(value)).toBe(false);
   });
 });

@@ -13,10 +13,13 @@ import { getPrismaClient, userHasScope, withAppSiteContext } from '@curvenote/sc
 import { crossrefCredentialsFromConfig } from '../../backend/crossref/client.server.js';
 import { getSiteWithAppData } from '../../backend/db.server.js';
 import { dbGetDoiConfig, dbGetRoleBoundBy, toDTO } from '../../backend/doi/db.server.js';
-import type { SiteDoiConfigDTO } from '../../backend/doi/types.js';
+import { dbListKindMappings } from '../../backend/doi/kinds.db.server.js';
+import type { EligibleKindDTO, SiteDoiConfigDTO } from '../../backend/doi/types.js';
 import { runDoiIntent } from './actionHelper.server.js';
 import { DoiStatusCard } from './DoiStatusCard.js';
 import { DoiAccountCard } from './DoiAccountCard.js';
+import { DoiEligibleKindsCard } from './DoiEligibleKindsCard.js';
+import { DoiVersioningPolicyCard } from './DoiVersioningPolicyCard.js';
 import { DoiSetup } from './DoiSetup.js';
 import { DoiRoleAdminCard } from './DoiRoleAdminCard.js';
 import { DoiAdvancedActionsCard } from './DoiAdvancedActionsCard.js';
@@ -32,6 +35,8 @@ export interface LoaderData {
    */
   crossref: { prefix: string; depositorEmail: string } | null;
   roleBoundBy?: { name: string; date: string };
+  /** Empty until the site has a DOI setup: the card only shows then. */
+  kinds: EligibleKindDTO[];
 }
 
 /** Site admins only: members hold site:doi:read, which does not open this screen. */
@@ -69,6 +74,7 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
     isSystemAdmin: userHasScope(ctx.user, scopes.system.admin),
     crossref,
     roleBoundBy: hasBoundRole ? await dbGetRoleBoundBy(prisma, ctx.site.id) : undefined,
+    kinds: row ? await dbListKindMappings(prisma, ctx.site.id) : [],
   };
 }
 
@@ -83,7 +89,8 @@ export const meta: MetaFunction<typeof loader> = ({ matches, loaderData }) => {
 };
 
 export default function DoiRegistration({ loaderData }: { loaderData: LoaderData }) {
-  const { site, config, doiCustomPrefixEnabled, isSystemAdmin, crossref, roleBoundBy } = loaderData;
+  const { site, config, doiCustomPrefixEnabled, isSystemAdmin, crossref, roleBoundBy, kinds } =
+    loaderData;
   return (
     <PageFrame title="DOI Registration" subtitle="Configure how this Site registers DOIs.">
       <div className="flex flex-col max-w-4xl space-y-5">
@@ -107,6 +114,8 @@ export default function DoiRegistration({ loaderData }: { loaderData: LoaderData
               isSystemAdmin={isSystemAdmin}
               roleBoundBy={roleBoundBy}
             />
+            <DoiVersioningPolicyCard />
+            <DoiEligibleKindsCard kinds={kinds} kindsUrl={`/app/sites/${site.name}/kinds`} />
             {isSystemAdmin && config.mode === SITE_DOI_CONFIG_MODE.CUSTOM_PREFIX && (
               <DoiRoleAdminCard config={config} />
             )}

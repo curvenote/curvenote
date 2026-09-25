@@ -10,6 +10,6 @@ describe('ACTIVITY_TYPE_LABELS', () => {
   test('labels the DOI registration activities', () => {
     expect(ACTIVITY_TYPE_LABELS.DOI_REGISTRATION_STARTED).toBe('DOI registration started');
     expect(ACTIVITY_TYPE_LABELS.DOI_REGISTRATION_COMPLETED).toBe('DOI registered');
-    expect(ACTIVITY_TYPE_LABELS.DOI_REGISTRATION_FAILED).toBe('DOI registration failed');
+    expect(ACTIVITY_TYPE_LABELS.DOI_REGISTRATION_FAILED).toBe('DOI registration unsuccessful');
   });
 });

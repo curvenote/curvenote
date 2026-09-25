@@ -1,5 +1,6 @@
 import type { GenericParent } from 'myst-common';
 import type { DoiBatchOptions, Preprint } from 'crossref-utils-sdk';
+import type { DoiContentType } from '@curvenote/scms-core';
 
 export type DepositIssue = {
   severity: 'blocking' | 'warning';
@@ -42,7 +43,8 @@ export type DepositFrontmatter = {
 export type DepositSource = {
   submissionVersionId: string;
   siteId: string;
-  kindName: string;
+  /** The submission's kind: its title for messages, and what its DOIs register as (null: none). */
+  kind: { title: string; doiContentType: DoiContentType | null };
   doiConfig: { status: string; prefix: string; role: string | null } | null;
   dates: {
     /** `Submission.date_published`. */
@@ -88,6 +90,8 @@ export type MappedDeposit = {
 
 export type AssembledDeposit = {
   xml?: string;
+  /** Present with `xml`: what that XML registers the DOI as. */
+  contentType?: DoiContentType;
   summary?: DepositSummary;
   issues: DepositIssue[];
   doi: string;

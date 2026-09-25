@@ -14,6 +14,7 @@ import type {
   DoiIntent,
   DoiResult,
   DoiTx,
+  KindMappingSnapshot,
   SiteDoiConfigDTO,
 } from './types.js';
 
@@ -150,6 +151,8 @@ type DoiWrite = {
   action: DoiIntent;
   /** What a P2002 means for this write; see below. */
   onUnique: DoiFailure;
+  /** Logged with the write; see writeSiteDoiConfigActivity. */
+  kinds?: KindMappingSnapshot[];
 };
 
 /**
@@ -175,6 +178,7 @@ export async function commitDoiWrite(
         userId: write.actor.userId,
         action: write.action,
         config: written ? toSnapshot(written) : null,
+        kinds: write.kinds,
       });
       return written;
     });

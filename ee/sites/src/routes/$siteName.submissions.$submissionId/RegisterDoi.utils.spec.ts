@@ -8,6 +8,31 @@ function issue(code: string, message = `${code} message`): DepositIssue {
 }
 
 describe('describeDoiBlockers', () => {
+  const siteSetup = {
+    kind: 'setup',
+    sentence: 'DOIs are not set up for this site.',
+    action: 'Set up DOIs',
+  };
+
+  it('shows only the not-eligible sentence when the kind cannot receive DOIs', () => {
+    expect(
+      describeDoiBlockers([
+        issue('missing_title'),
+        issue('kind_not_eligible', 'Submissions of kind "Blog" can\'t receive DOIs.'),
+      ]),
+    ).toEqual({
+      kind: 'setup',
+      sentence: 'Submissions of kind "Blog" can\'t receive DOIs.',
+      action: 'Open DOI Registration',
+    });
+  });
+
+  it('asks for site setup before kind eligibility', () => {
+    expect(describeDoiBlockers([issue('kind_not_eligible'), issue('site_not_active')])).toEqual(
+      siteSetup,
+    );
+  });
+
   it('shows only the site setup when the site is not active', () => {
     expect(
       describeDoiBlockers([
@@ -15,7 +40,7 @@ describe('describeDoiBlockers', () => {
         issue('site_not_active'),
         issue('missing_date'),
       ]),
-    ).toEqual({ kind: 'site_not_active' });
+    ).toEqual(siteSetup);
   });
 
   it('joins missing fields into one sentence', () => {

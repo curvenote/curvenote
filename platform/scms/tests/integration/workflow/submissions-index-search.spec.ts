@@ -393,6 +393,19 @@ describe('submissions index — search and filters', () => {
     expect(rows.map((r) => r.id)).toContain(seed.submissions.workOnlyDoi.id);
   });
 
+  test('q matches a DOI registered on the submission', async () => {
+    const prisma = await getPrismaClient();
+    await prisma.submission.update({
+      where: { id: seed.submissions.photoSynthesis.id },
+      data: { doi: '10.62329/registered-abc' },
+    });
+    const rows = await dbListSubmissionsForIndex(testData.context, {
+      ...DEFAULT_QUERY,
+      q: 'registered-abc',
+    });
+    expect(rows.map((r) => r.id)).toContain(seed.submissions.photoSynthesis.id);
+  });
+
   test('q with no matches returns an empty page and count of 0', async () => {
     const rows = await dbListSubmissionsForIndex(testData.context, {
       ...DEFAULT_QUERY,

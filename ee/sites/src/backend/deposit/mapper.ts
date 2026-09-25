@@ -10,12 +10,8 @@ import type {
   MappedDeposit,
 } from './types.js';
 
-export type DepositType = 'posted_content';
-
-/** Submission kind -> Crossref deposit type. Every kind is a preprint in the MVP (D3, D34). */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function depositTypeForKind(_kindName: string): DepositType {
-  return 'posted_content';
+export function kindNotEligibleMessage(kindTitle: string): string {
+  return `Submissions of kind "${kindTitle}" can't receive DOIs. A site admin can enable it in DOI Registration.`;
 }
 
 function blocking(code: string, message: string): DepositIssue {
@@ -61,6 +57,9 @@ export function toDeposit(source: DepositSource, opts: DepositOptions): MappedDe
   const batch = { id: opts.batchId, timestamp: opts.timestamp, depositor: opts.depositor };
   if (!source.doiConfig || source.doiConfig.status !== SITE_DOI_CONFIG_STATUS.ACTIVE) {
     issues.push(blocking('site_not_active', 'The site is not set up for DOI registration.'));
+  }
+  if (source.kind.doiContentType === null) {
+    issues.push(blocking('kind_not_eligible', kindNotEligibleMessage(source.kind.title)));
   }
   const title = source.frontmatter.title?.trim();
   if (!title) {

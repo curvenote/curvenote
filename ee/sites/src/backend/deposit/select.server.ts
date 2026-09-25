@@ -22,7 +22,7 @@ export const depositSourceSelect = {
       site_id: true,
       date_published: true,
       doi: true,
-      kind: { select: { name: true } },
+      kind: { select: { name: true, content: true, doi_content_type: true } },
       site: { select: { doiConfig: { select: { status: true, prefix: true, role: true } } } },
     },
   },

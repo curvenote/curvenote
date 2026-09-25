@@ -40,8 +40,12 @@ async function checkDoiReadiness(ctx: SiteContext, submissionId: string): Promis
     depositorEmail = creds.depositorEmail;
     deploymentPrefix = creds.prefix;
     resourceUrlBase = creds.resourceUrlBase;
-  } catch {
-    // Most deployments have no api.crossref yet; this runs on every detail page view, so no log.
+  } catch (error: any) {
+    // Most deployments have no api.crossref yet, so its absence stays quiet. A block that is
+    // present but invalid (e.g. test host without allowTestHost) is a deployment mistake.
+    if (ctx.$config.api?.crossref) {
+      console.error('[doi] api.crossref is invalid', error?.message);
+    }
     return { kind: 'not_configured' };
   }
 

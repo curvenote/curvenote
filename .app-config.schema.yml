@@ -381,6 +381,9 @@ properties:
           host:
             type: string
             description: Base URL, e.g. https://test.crossref.org
+          allowTestHost:
+            type: boolean
+            description: Needed to use test.crossref.org; production never sets it.
           depositorEmail:
             type: string
             description: Account email; the login is <depositorEmail>/<role>, e.g. doi@curvenote.com
