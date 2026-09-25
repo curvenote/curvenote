@@ -74,6 +74,7 @@
         "lucide-react": "^1.18.0",
         "myst-common": "^1.9.3",
         "myst-config": "^1.9.3",
+        "myst-to-jats": "^1.0.35",
         "myst-to-react": "^1.0.0",
         "react": "^18.3.1",
         "react-day-picker": "8",
@@ -1393,8 +1394,8 @@
       "version": "0.3.13",
       "dependencies": {
         "@curvenote/common": "^0.9.0",
-        "@curvenote/scms-core": "^0.27.0",
-        "@curvenote/scms-tasks": "^0.27.0",
+        "@curvenote/scms-core": "^0.28.0",
+        "@curvenote/scms-tasks": "^0.28.0",
         "express": "^4.22.2",
       },
       "devDependencies": {
