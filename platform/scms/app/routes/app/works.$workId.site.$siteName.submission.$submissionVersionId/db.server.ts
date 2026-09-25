@@ -22,7 +22,7 @@ export async function getSubmissionVersionsForWorkAndSite(workId: string, siteNa
       },
     },
     include: {
-      work_version: { select: cdnWorkVersionSelect },
+      work_version: { select: { ...cdnWorkVersionSelect, doi: true } },
       submission: {
         include: {
           site: true,
