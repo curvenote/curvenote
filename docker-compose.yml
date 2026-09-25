@@ -81,6 +81,9 @@ services:
       - '8080:8080'
     environment:
       PORT: '8080'
+      # SCMS signs MinIO URLs as 127.0.0.1:9000; rewrite connect host inside the container.
+      TASK_CONVERTER_REWRITE_LOCALHOST: '1'
+      TASK_CONVERTER_HOST_GATEWAY: host.docker.internal
     # Callbacks to SCMS on the host (jobUrl / statusUrl use tasksCallbackUrl).
     extra_hosts:
       - 'host.docker.internal:host-gateway'

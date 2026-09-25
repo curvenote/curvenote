@@ -2,9 +2,10 @@
  * Shared utilities for conversion handlers: subprocess runner, file download, filename helpers.
  */
 
-import { createWriteStream } from 'node:fs';
+import { createWriteStream, existsSync } from 'node:fs';
+import http from 'node:http';
+import https from 'node:https';
 import path from 'node:path';
-import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { spawn } from 'node:child_process';
 import type { FileMetadataSectionItem } from './payload.js';
@@ -72,6 +73,10 @@ export function safeDocxBasename(
  * Download file from signedUrl to tmpFolder/{outputBasename}.
  * tmpFolder should be an absolute path (e.g. path.resolve(tmpFolder)).
  * Throws if signedUrl is missing or download fails.
+ *
+ * Local Docker: SCMS signs MinIO URLs as http://127.0.0.1:9000/... which is unreachable
+ * from the converter container. Rewrite the connect host to host.docker.internal while
+ * keeping Host: 127.0.0.1:9000 so the SigV4 signature still validates.
  */
 export async function downloadFile(
   fileEntry: FileMetadataSectionItem & { pathKey?: string },
@@ -85,16 +90,68 @@ export async function downloadFile(
     );
   }
   const dest = path.join(tmpFolder, outputBasename);
-  const response = await fetch(signedUrl);
-  if (!response.ok) {
-    throw new Error(`Failed to download Word file: HTTP ${response.status} ${response.statusText}`);
+  try {
+    await downloadSignedUrlToFile(signedUrl, dest);
+  } catch (err) {
+    const cause =
+      err instanceof Error && 'cause' in err && err.cause instanceof Error
+        ? err.cause.message
+        : err instanceof Error
+          ? err.message
+          : String(err);
+    throw new Error(`Failed to download ${outputBasename}: ${cause}`);
   }
-  const body = response.body;
-  if (!body) {
-    throw new Error('Download response has no body');
-  }
-  const writeStream = createWriteStream(dest);
-  // Node 18+ fetch body is a Web ReadableStream; fromWeb accepts it
-  await pipeline(Readable.fromWeb(body as Parameters<typeof Readable.fromWeb>[0]), writeStream);
   return dest;
+}
+
+function shouldRewriteLocalhostForContainer(): boolean {
+  if (process.env.TASK_CONVERTER_REWRITE_LOCALHOST === '0') return false;
+  if (process.env.TASK_CONVERTER_REWRITE_LOCALHOST === '1') return true;
+  try {
+    return existsSync('/.dockerenv');
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Fetch a signed URL to disk, rewriting localhost → host.docker.internal when in Docker.
+ */
+export async function downloadSignedUrlToFile(signedUrl: string, dest: string): Promise<void> {
+  const parsed = new URL(signedUrl);
+  const headers: http.OutgoingHttpHeaders = {};
+  let hostname = parsed.hostname;
+  const port = parsed.port || (parsed.protocol === 'https:' ? '443' : '80');
+
+  if (
+    shouldRewriteLocalhostForContainer() &&
+    (parsed.hostname === '127.0.0.1' || parsed.hostname === 'localhost')
+  ) {
+    headers.host = parsed.host;
+    hostname = process.env.TASK_CONVERTER_HOST_GATEWAY ?? 'host.docker.internal';
+  }
+
+  const lib = parsed.protocol === 'https:' ? https : http;
+  const response = await new Promise<http.IncomingMessage>((resolve, reject) => {
+    const req = lib.request(
+      {
+        protocol: parsed.protocol,
+        hostname,
+        port,
+        path: `${parsed.pathname}${parsed.search}`,
+        method: 'GET',
+        headers,
+      },
+      resolve,
+    );
+    req.on('error', reject);
+    req.end();
+  });
+
+  if ((response.statusCode ?? 0) < 200 || (response.statusCode ?? 0) >= 300) {
+    response.resume();
+    throw new Error(`HTTP ${response.statusCode} ${response.statusMessage ?? ''}`.trim());
+  }
+
+  await pipeline(response, createWriteStream(dest));
 }
