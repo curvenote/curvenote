@@ -637,8 +637,6 @@ export const loader = async (args: LoaderFunctionArgs) => {
   const hasWebArticleGeneration = userHasScope(
     ctx.user,
     scopes.app.works.webArticleGeneration,
-    undefined,
-    { ignoreSystemAdmin: true },
   );
   const webVersionPreviewSignatures: Record<string, string> = {};
   if (hasWebArticleGeneration) {

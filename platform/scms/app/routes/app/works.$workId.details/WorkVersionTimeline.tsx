@@ -242,7 +242,9 @@ function WorkVersionTimelineInner({
   const includeDrafts = searchParams.get('drafts') === 'true';
   const canExport = userScopes.includes(scopes.app.works.export);
   const hasChecksFeature = userScopes.includes(scopes.app.works.checks.feature);
-  const hasWebArticleGeneration = userScopes.includes(scopes.app.works.webArticleGeneration);
+  const hasWebArticleGeneration =
+    userScopes.includes(scopes.app.works.webArticleGeneration) ||
+    userScopes.includes(scopes.system.admin);
   const checkServiceById = Object.fromEntries(checkServices.map((s) => [s.id, s]));
 
   const versionNumberByVersionId = useMemo(

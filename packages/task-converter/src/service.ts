@@ -45,7 +45,7 @@ export function createService() {
 
         if (!validatePayload(payload)) {
           throw new Error(
-            'Invalid payload: required workVersion (object with id, work_id, title, authors), target matching conversionType (pdf|web), conversionType one of (docx-pd-curvenote-pdf, docx-lowriter-pdf, docx-pd-curvenote-web; legacy aliases docx-pandoc-myst-pdf, docx-pandoc-myst-web also accepted), and metadata as object',
+            'Invalid payload: required workVersion (object with id, work_id, title, authors), target matching conversionType (pdf|web), conversionType one of (docx-pd-curvenote-pdf, docx-lowriter-pdf, docx-pd-curvenote-web, myst-curvenote-web; legacy aliases docx-pandoc-myst-pdf, docx-pandoc-myst-web also accepted), and metadata as object',
           );
         }
 

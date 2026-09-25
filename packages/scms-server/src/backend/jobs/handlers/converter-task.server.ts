@@ -165,6 +165,18 @@ export async function converterTaskHandler(ctx: Context, data: CreateJob) {
 
   const workVersionPayload = workVersionToPayload(workVersionRow);
   if (workVersionPayload.metadata) {
+    // myst-curvenote-web reads Foundry-imported sources from metadata.foundry.files;
+    // merge them into files so signFilesInMetadata attaches download URLs.
+    if (payload.conversion_type === 'myst-curvenote-web') {
+      const meta = workVersionPayload.metadata as WorkVersionMetadataPayload & {
+        foundry?: { files?: Record<string, unknown> };
+        files?: Record<string, unknown>;
+      };
+      const foundryFiles = meta.foundry?.files;
+      if (foundryFiles && typeof foundryFiles === 'object') {
+        meta.files = { ...(meta.files ?? {}), ...foundryFiles };
+      }
+    }
     const signedMetadata = await signFilesInMetadata(
       workVersionPayload.metadata as Parameters<typeof signFilesInMetadata>[0],
       workVersionRow.cdn ?? '',
