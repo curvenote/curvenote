@@ -97,7 +97,10 @@ export function toDeposit(source: DepositSource, opts: DepositOptions): MappedDe
   const summary: DepositSummary = {
     title,
     subtitle: preprint.subtitle,
-    date: date.toISOString(),
+    // Display-only civil day (YYYY-MM-DD) from the same `date`'s UTC parts, so it matches the
+    // Crossref XML date-parts (built with UTC getters) and Submission Details. A full ISO
+    // timestamp here is re-parsed by formatDate as local time and shifts back a day west of UTC.
+    date: date.toISOString().slice(0, 10),
     authors: contributors.authors,
     license,
     hasAbstract: !!abstract,

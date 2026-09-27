@@ -72,7 +72,7 @@ export type DepositOptions = {
 export type DepositSummary = {
   title: string;
   subtitle?: string;
-  /** Posted date, ISO. */
+  /** Civil publication date `YYYY-MM-DD` for display, matching what Submission Details shows. */
   date: string;
   authors: { name: string; orcid?: string }[];
   license?: string;
