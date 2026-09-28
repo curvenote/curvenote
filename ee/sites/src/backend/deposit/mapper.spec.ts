@@ -96,25 +96,55 @@ describe('toDeposit', () => {
     ]);
   });
 
-  it('warns on missing abstract, non-CC licence and missing authors', () => {
+  it('warns on missing abstract, license and authors', () => {
     const { preprint, issues } = toDeposit(
       lapalmaSource({
         abstractMdast: undefined,
-        frontmatter: {
-          title: 'T',
-          authors: [],
-          license: { content: { id: 'MIT', url: 'https://opensource.org/licenses/MIT' } },
-        },
+        frontmatter: { title: 'T', authors: [], license: undefined },
       }),
       lapalmaOptions,
     );
     expect(preprint).toBeDefined();
     expect(preprint?.license).toBeUndefined();
     expect(preprint?.abstract).toBeUndefined();
-    expect(issues.map((i) => i.code).sort()).toEqual([
-      'missing_abstract',
-      'missing_authors',
-      'missing_license',
+    expect(issues.map((i) => i.message)).toEqual([
+      'No authors found',
+      'No abstract found',
+      'No license information found',
+    ]);
+  });
+
+  it('names a non-CC license that is left out', () => {
+    const { preprint, issues } = toDeposit(
+      lapalmaSource({
+        frontmatter: {
+          ...lapalmaSource().frontmatter,
+          license: { content: { id: 'MIT', url: 'https://opensource.org/licenses/MIT' } },
+        },
+      }),
+      lapalmaOptions,
+    );
+    expect(preprint?.license).toBeUndefined();
+    expect(issues).toEqual([
+      {
+        severity: 'warning',
+        code: 'license_not_cc',
+        message: 'License "MIT" (only Creative Commons licenses are included)',
+      },
+    ]);
+  });
+
+  it('blocks when a person has a single name', () => {
+    const { preprint, summary, issues } = toDeposit(
+      lapalmaSource({
+        frontmatter: { ...lapalmaSource().frontmatter, authors: [{ name: 'BNextLabs' }] },
+      }),
+      lapalmaOptions,
+    );
+    expect(preprint).toBeUndefined();
+    expect(summary).toBeUndefined();
+    expect(issues.filter((i) => i.severity === 'blocking').map((i) => i.code)).toEqual([
+      'author_single_name',
     ]);
   });
 

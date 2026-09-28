@@ -44,7 +44,9 @@ export async function actionRegisterDoi(ctx: SiteContextWithUser, submissionId: 
     userId: ctx.user.id,
   });
   if (!result.ok) {
-    const details = (result.issues ?? []).map((issue) => issue.message);
+    const details = (result.issues ?? [])
+      .filter((issue) => issue.severity === 'blocking')
+      .map((issue) => issue.message);
     return data({ error: [result.error, ...details].join(' ') }, { status: result.status });
   }
   return data({ info: `DOI registration started for ${result.doi}.` });
