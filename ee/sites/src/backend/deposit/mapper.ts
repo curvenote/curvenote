@@ -1,6 +1,6 @@
 import { abstractFromMdast } from 'crossref-utils-sdk';
 import type { Preprint } from 'crossref-utils-sdk';
-import { SITE_DOI_CONFIG_STATUS } from '@curvenote/scms-core';
+import { SITE_DOI_CONFIG_STATUS, utcDayFromDate } from '@curvenote/scms-core';
 import { contributorsFromFrontmatter } from './authors.js';
 import type {
   DepositIssue,
@@ -97,7 +97,7 @@ export function toDeposit(source: DepositSource, opts: DepositOptions): MappedDe
   const summary: DepositSummary = {
     title,
     subtitle: preprint.subtitle,
-    date: date.toISOString(),
+    date: utcDayFromDate(date),
     authors: contributors.authors,
     license,
     hasAbstract: !!abstract,
