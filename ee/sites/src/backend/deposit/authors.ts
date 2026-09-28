@@ -31,7 +31,7 @@ function parseName(
     issues.push({
       severity: 'blocking',
       code: 'author_single_name',
-      message: `"${literal || '(empty)'}" has only one name and cannot be included in the Crossref record. If it is an organization, add "collaboration: true" to it in the author list; if it is a person, add their given name.`,
+      message: `"${literal || '(empty)'}" has only one name and cannot be included in the Crossref record. If it is an organization, mark it as a collaboration; if it is a person, add their given name.`,
       path: `authors[${index}]`,
     });
     return null;

@@ -96,7 +96,7 @@ describe('contributorsFromFrontmatter', () => {
         severity: 'blocking',
         code: 'author_single_name',
         message:
-          '"BNextLabs" has only one name and cannot be included in the Crossref record. If it is an organization, add "collaboration: true" to it in the author list; if it is a person, add their given name.',
+          '"BNextLabs" has only one name and cannot be included in the Crossref record. If it is an organization, mark it as a collaboration; if it is a person, add their given name.',
         path: 'authors[1]',
       },
     ]);
