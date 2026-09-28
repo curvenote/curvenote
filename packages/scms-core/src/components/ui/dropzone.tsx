@@ -41,6 +41,9 @@ export type DropzoneProps = Omit<DropzoneOptions, 'onDrop'> & {
 export const Dropzone = ({
   accept,
   maxFiles = 1,
+  // react-dropzone defaults multiple to true; with maxFiles=1 that lets the
+  // OS picker multi-select, then rejects the drop/selection as "too many files".
+  multiple = maxFiles === 1 ? false : true,
   maxSize,
   minSize,
   onDrop,
@@ -54,6 +57,7 @@ export const Dropzone = ({
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept,
     maxFiles,
+    multiple,
     maxSize,
     minSize,
     onError,

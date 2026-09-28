@@ -247,6 +247,7 @@ export function FileDropzone({
       src={undefined}
       onDrop={handleDrop}
       maxFiles={1}
+      multiple={false}
       maxSize={maxSize}
       accept={accept}
       disabled={readonly}
