@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useFetcher } from 'react-router';
 import { InfoIcon } from 'lucide-react';
 import { ui } from '@curvenote/scms-core';
@@ -10,8 +10,11 @@ type DoiCustomPrefixFormProps = {
 
 export function DoiCustomPrefixForm({ siteWithAppData }: DoiCustomPrefixFormProps) {
   const fetcher = useFetcher<{ error?: string; info?: string }>();
-  const enabled = siteWithAppData.data?.doiCustomPrefixEnabled ?? false;
+  const savedEnabled = siteWithAppData.data?.doiCustomPrefixEnabled ?? false;
+  const [enabled, setEnabled] = useState(savedEnabled);
+  const dirty = enabled !== savedEnabled;
   const busy = fetcher.state !== 'idle';
+
   useEffect(() => {
     if (fetcher.state === 'idle' && fetcher.data) {
       if (fetcher.data.error) {
@@ -36,8 +39,9 @@ export function DoiCustomPrefixForm({ siteWithAppData }: DoiCustomPrefixFormProp
             id="doiCustomPrefixEnabled"
             name="doiCustomPrefixEnabled"
             value="doiCustomPrefixEnabled"
-            defaultChecked={enabled}
+            checked={enabled}
             disabled={busy}
+            onCheckedChange={(checked) => setEnabled(checked === true)}
           />
           <label htmlFor="doiCustomPrefixEnabled" className="text-sm font-medium">
             Allow own DOI prefix (Enterprise)
@@ -58,8 +62,22 @@ export function DoiCustomPrefixForm({ siteWithAppData }: DoiCustomPrefixFormProp
             </ui.Tooltip>
           </ui.TooltipProvider>
         </div>
-        <div className="flex justify-end">
-          <ui.StatefulButton type="submit" variant="default" busy={busy} overlayBusy>
+        <div className="flex justify-end space-x-3">
+          <ui.Button
+            type="button"
+            variant="secondary"
+            disabled={!dirty || busy}
+            onClick={() => setEnabled(savedEnabled)}
+          >
+            Reset
+          </ui.Button>
+          <ui.StatefulButton
+            type="submit"
+            variant="default"
+            busy={busy}
+            overlayBusy
+            disabled={!dirty || busy}
+          >
             Save
           </ui.StatefulButton>
         </div>

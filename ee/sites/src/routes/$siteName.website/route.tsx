@@ -13,13 +13,28 @@ import {
 } from '@curvenote/scms-core';
 import type { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from 'react-router';
 import { useFetcher } from 'react-router';
-import type { JournalThemeConfig, SiteDTO } from '@curvenote/common';
+import type { SiteDTO } from '@curvenote/common';
+import type { FontLicense, SiteThemeConfig, ThemeFontsConfig } from '../../themeConfig/types.js';
+import { fontLicenseError, fontsError } from '../../themeConfig/validate.js';
+import {
+  FONT_LICENSE_UPLOAD_SLOT,
+  FONT_UPLOAD_SLOT,
+  LICENSE_MAX_BYTES,
+  TypographyField,
+} from './TypographyField.js';
 import { SiteSkeleton } from './SiteSkeleton.js';
 import { ERROR_TOOLTIP_CLASS, UnsavedChangesGuard } from './UnsavedChangesGuard.js';
 import { SocialLinksField, socialLinksError } from './SocialLinksField.js';
 import { FooterLinksField, footerLinksError } from './FooterLinksField.js';
 import { DESIGN_TARGETS, type DesignTarget } from './designTargets.js';
-import { ImageIcon, PaletteIcon, PanelBottomIcon, TriangleAlert, TypeIcon } from 'lucide-react';
+import {
+  CaseSensitive,
+  ImageIcon,
+  PaletteIcon,
+  PanelBottomIcon,
+  TriangleAlert,
+  TypeIcon,
+} from 'lucide-react';
 import { useState, useRef, useCallback, useEffect } from 'react';
 import Color from 'color';
 import { ColorSwatch } from './ColorSwatch.js';
@@ -29,13 +44,14 @@ import type { FileUploadConfig } from '@curvenote/scms-core';
 interface LoaderData {
   scopes: string[];
   site: SiteDTO;
-  themeConfig: JournalThemeConfig | undefined;
+  themeConfig: SiteThemeConfig | undefined;
   logoUrl: string | undefined;
   logoDarkUrl: string | undefined;
   faviconUrl: string | undefined;
   footerLogoUrl: string | undefined;
   footerLogoDarkUrl: string | undefined;
   tagline: string | undefined;
+  fontLicense: FontLicense | undefined;
   publicCdn?: string;
 }
 
@@ -57,6 +73,48 @@ const faviconUploadConfig: FileUploadConfig = {
   maxSize: 1 * 1024 * 1024,
 };
 
+const fontUploadConfig: FileUploadConfig = {
+  slot: FONT_UPLOAD_SLOT,
+  label: 'Font file',
+  description: 'Upload a web font file for your site',
+  optional: true,
+  multiple: false,
+  ignoreDuplicates: true,
+  accept: '.woff2,.woff,.otf,.ttf',
+  mimeTypes: [
+    'font/woff2',
+    'font/woff',
+    'font/otf',
+    'font/ttf',
+    'application/font-woff2',
+    'application/font-woff',
+    'application/x-font-otf',
+    'application/x-font-ttf',
+    'application/octet-stream',
+  ],
+  maxSize: 2 * 1024 * 1024,
+};
+
+const fontLicenseUploadConfig: FileUploadConfig = {
+  slot: FONT_LICENSE_UPLOAD_SLOT,
+  label: 'Font license',
+  description: 'Upload a font license or receipt',
+  optional: true,
+  multiple: false,
+  ignoreDuplicates: true,
+  accept: '.pdf,.txt,.md,.png,.jpg,.jpeg,.webp',
+  mimeTypes: [
+    'application/pdf',
+    'text/plain',
+    'text/markdown',
+    'image/png',
+    'image/jpeg',
+    'image/jpg',
+    'image/webp',
+  ],
+  maxSize: LICENSE_MAX_BYTES,
+};
+
 const logoUploadConfig: FileUploadConfig = {
   slot: 'logo',
   label: 'Site Logo',
@@ -76,13 +134,14 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
   });
 
   const metadata = coerceToObject(ctx.site.metadata) as any;
-  const themeConfig = metadata?.theme_config as JournalThemeConfig | undefined;
+  const themeConfig = metadata?.theme_config as SiteThemeConfig | undefined;
   const logoUrl = metadata?.logo as string | undefined;
   const logoDarkUrl = metadata?.logo_dark as string | undefined;
   const faviconUrl = metadata?.favicon as string | undefined;
   const footerLogoUrl = metadata?.footer_logo as string | undefined;
   const footerLogoDarkUrl = metadata?.footer_logo_dark as string | undefined;
   const tagline = metadata?.tagline as string | undefined;
+  const fontLicense = metadata?.font_license as FontLicense | undefined;
 
   return {
     scopes: ctx.scopes,
@@ -94,6 +153,7 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
     footerLogoUrl,
     footerLogoDarkUrl,
     tagline,
+    fontLicense,
     publicCdn: ctx.$config.api.knownBucketInfoMap.pub.cdn,
   };
 }
@@ -108,8 +168,15 @@ export async function action(args: ActionFunctionArgs) {
   const formData = await args.request.formData();
   const intent = formData.get('intent') as string;
   if (intent === FILE_UPLOAD_INTENTS.uploadStage) {
+    const slot = formData.get('slot');
     const uploadConfig =
-      formData.get('slot') === faviconUploadConfig.slot ? faviconUploadConfig : logoUploadConfig;
+      slot === faviconUploadConfig.slot
+        ? faviconUploadConfig
+        : slot === fontUploadConfig.slot
+          ? fontUploadConfig
+          : slot === fontLicenseUploadConfig.slot
+            ? fontLicenseUploadConfig
+            : logoUploadConfig;
     return siteUploadsStage(ctx, uploadConfig, formData);
   } else if (intent === FILE_UPLOAD_INTENTS.uploadComplete) {
     return siteUploadsComplete(ctx, formData);
@@ -207,6 +274,7 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
     footerLogoUrl,
     footerLogoDarkUrl,
     tagline,
+    fontLicense,
     publicCdn,
   } = loaderData;
   const fetcher = useFetcher();
@@ -231,9 +299,15 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
   const [currentColorSecondary, setCurrentColorSecondary] = useState(
     themeConfig?.colors?.secondary || themeConfig?.colors?.primary || '#64748b',
   );
+  // Slots absent from the saved config are "default"; the editor keeps that shape
+  const savedFonts: ThemeFontsConfig = themeConfig?.fonts ?? {};
+  const [currentFonts, setCurrentFonts] = useState<ThemeFontsConfig>(savedFonts);
+  const savedLicense: FontLicense = fontLicense ?? {};
+  const [currentLicense, setCurrentLicense] = useState<FontLicense>(savedLicense);
   // Use a reset key to force ColorPicker remounting on cancel
   const [resetKey, setResetKey] = useState(0);
 
+  const licenseSubmittedRef = useRef(false);
   // Use refs to debounce color updates and prevent race conditions
   const primaryColorTimeoutRef = useRef<NodeJS.Timeout>();
   const secondaryColorTimeoutRef = useRef<NodeJS.Timeout>();
@@ -261,7 +335,17 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
     currentTagline !== (tagline || '') ||
     JSON.stringify(currentSocialLinks) !== JSON.stringify(site.social_links ?? []) ||
     JSON.stringify(currentFooterLinks) !== JSON.stringify(site.footer_links ?? []);
-  const dirty = basicsChanged || logosChanged || colorsChanged || footerChanged;
+  const fontsChanged = JSON.stringify(currentFonts) !== JSON.stringify(savedFonts);
+  const licenseChanged = JSON.stringify(currentLicense) !== JSON.stringify(savedLicense);
+  const dirty =
+    basicsChanged ||
+    logosChanged ||
+    colorsChanged ||
+    footerChanged ||
+    fontsChanged ||
+    licenseChanged;
+  const fontsProblem = fontsError(currentFonts);
+  const licenseProblem = fontLicenseError(currentFonts, currentLicense);
   const footerLinksProblem = footerLinksError(currentFooterLinks);
   const socialLinksProblem = socialLinksError(currentSocialLinks);
   // Field messages stand alone, so name the field they came from when they travel
@@ -272,8 +356,12 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
     ]
       .filter(Boolean)
       .join(' ') || undefined;
-  const saveError = footerSectionError
-    ? `Form has errors that need to be fixed before saving. ${footerSectionError}`
+  const typographyProblem = [fontsProblem, licenseProblem].filter(Boolean).join(' ') || undefined;
+  const typographySectionError =
+    typographyProblem && `In Typography, ${lowerFirst(typographyProblem)}`;
+  const sectionErrors = [typographySectionError, footerSectionError].filter(Boolean).join(' ');
+  const saveError = sectionErrors
+    ? `Form has errors that need to be fixed before saving. ${sectionErrors}`
     : undefined;
   const canSave = canEdit && !saveError;
 
@@ -301,6 +389,8 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
     setCurrentColorSecondary(
       themeConfig?.colors?.secondary || themeConfig?.colors?.primary || '#64748b',
     );
+    setCurrentFonts(savedFonts);
+    setCurrentLicense(savedLicense);
     // Force ColorPicker to remount with original values
     setResetKey((prev) => prev + 1);
   };
@@ -343,6 +433,16 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
     }
     if (currentColorSecondary !== themeConfig?.colors?.secondary) {
       formData.append('colorSecondary', currentColorSecondary);
+    }
+    if (JSON.stringify(currentFonts) !== JSON.stringify(savedFonts)) {
+      formData.append('fonts', JSON.stringify(currentFonts));
+    }
+    if (licenseChanged) {
+      formData.append('fontLicense', JSON.stringify(currentLicense));
+      // Remembered so the success toast can say what happens next
+      licenseSubmittedRef.current = !!currentLicense.files?.length && !savedLicense.verified;
+    } else {
+      licenseSubmittedRef.current = false;
     }
 
     fetcher.submit(formData, { method: 'POST' });
@@ -389,7 +489,12 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
     if (fetcher.state !== 'idle' || !fetcher.data) return;
     const data = fetcher.data as { success?: boolean; error?: string };
     if (data.error) ui.toastError(data.error);
-    else if (data.success) ui.toastSuccess('Site design saved');
+    else if (data.success)
+      ui.toastSuccess(
+        licenseSubmittedRef.current
+          ? 'Site design saved. The font license is awaiting verification.'
+          : 'Site design saved',
+      );
   }, [fetcher.state, fetcher.data]);
 
   // Generic debounced color change handler to prevent race conditions
@@ -437,6 +542,7 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
             footerLinks={currentFooterLinks}
             themeColorPrimary={currentColorPrimary}
             themeColorSecondary={currentColorSecondary}
+            fonts={currentFonts}
             onSelect={jumpTo}
           />
         </div>
@@ -685,6 +791,51 @@ export default function WebsiteAndDesign({ loaderData }: { loaderData: LoaderDat
                         <ui.ColorPickerOutput />
                       </div>
                     </ui.ColorPicker>
+                  </Field>
+                </div>
+              </ui.AccordionContent>
+            </ui.AccordionItem>
+
+            <ui.AccordionItem value="item-typography">
+              <ui.AccordionTrigger className="justify-between px-4 hover:no-underline">
+                <div className="flex items-center flex-1 gap-3">
+                  <CaseSensitive className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                  <div className="flex-1 text-left">
+                    <div className="flex items-center gap-2 font-semibold">
+                      Typography
+                      {(fontsChanged || licenseChanged || typographySectionError) && (
+                        <SectionDot error={typographySectionError || undefined} />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </ui.AccordionTrigger>
+              <ui.AccordionContent>
+                <div className="px-4 pt-2 space-y-4">
+                  <Field id="field-fonts" highlighted={highlighted} className="space-y-2">
+                    <FieldLabel
+                      title="Fonts for article text. Site navigation and buttons keep the system font so they never look foreign."
+                      error={typographyProblem}
+                    >
+                      Fonts
+                    </FieldLabel>
+                    <TypographyField
+                      fonts={currentFonts}
+                      savedFonts={savedFonts}
+                      onChange={setCurrentFonts}
+                      license={currentLicense}
+                      savedLicense={savedLicense}
+                      licenseError={licenseProblem}
+                      onLicenseChange={setCurrentLicense}
+                      disabled={!canEdit}
+                      uploadFolder={`static/site/${site.name}`}
+                      toPublicUrl={toPublicAssetUrl}
+                      openSlot={
+                        pendingTarget?.startsWith('fonts.')
+                          ? (pendingTarget.slice('fonts.'.length) as 'body' | 'heading' | 'small')
+                          : undefined
+                      }
+                    />
                   </Field>
                 </div>
               </ui.AccordionContent>
