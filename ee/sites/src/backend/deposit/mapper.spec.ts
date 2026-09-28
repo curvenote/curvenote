@@ -114,8 +114,8 @@ describe('toDeposit', () => {
     ]);
   });
 
-  it('names a non-CC license that is left out', () => {
-    const { preprint, issues } = toDeposit(
+  it('deposits a non-CC license that has a URL', () => {
+    const { preprint, summary, issues } = toDeposit(
       lapalmaSource({
         frontmatter: {
           ...lapalmaSource().frontmatter,
@@ -124,12 +124,27 @@ describe('toDeposit', () => {
       }),
       lapalmaOptions,
     );
+    expect(preprint?.license).toBe('https://opensource.org/licenses/MIT');
+    expect(summary?.license).toBe('https://opensource.org/licenses/MIT');
+    expect(issues).toEqual([]);
+  });
+
+  it('names a license that has no URL and leaves it out', () => {
+    const { preprint, issues } = toDeposit(
+      lapalmaSource({
+        frontmatter: {
+          ...lapalmaSource().frontmatter,
+          license: { content: { id: 'Proprietary' } },
+        },
+      }),
+      lapalmaOptions,
+    );
     expect(preprint?.license).toBeUndefined();
     expect(issues).toEqual([
       {
         severity: 'warning',
-        code: 'license_not_cc',
-        message: 'License "MIT" (only Creative Commons licenses are included)',
+        code: 'license_without_url',
+        message: 'License "Proprietary" will not be included because it has no URL',
       },
     ]);
   });

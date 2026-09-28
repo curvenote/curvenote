@@ -32,17 +32,19 @@ function postedDate(source: DepositSource): Date | undefined {
   return Number.isNaN(date.getTime()) ? undefined : date;
 }
 
-/** Only CC licenses go to Crossref's AccessIndicators, as the crossref-utils CLI does. */
 function licenseUrl(source: DepositSource, issues: DepositIssue[]): string | undefined {
   const license = source.frontmatter.license;
   const content = typeof license === 'object' ? license?.content : undefined;
-  if (content?.CC && content.url) {
+  if (content?.url) {
     return content.url;
   }
-  const name = typeof license === 'string' ? license : (content?.id ?? content?.url);
+  const name = typeof license === 'string' ? license : content?.id;
   if (name) {
     issues.push(
-      warning('license_not_cc', `License "${name}" (only Creative Commons licenses are included)`),
+      warning(
+        'license_without_url',
+        `License "${name}" will not be included because it has no URL`,
+      ),
     );
   } else {
     issues.push(warning('missing_license', 'No license information found'));
