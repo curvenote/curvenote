@@ -1,5 +1,24 @@
 # @curvenote/task-converter
 
+## 0.4.0
+
+### Minor Changes
+
+- [#1103](https://github.com/curvenote/curvenote/pull/1103) [`e0f9a6c`](https://github.com/curvenote/curvenote/commit/e0f9a6ca2644c6e4e3ffaef885262fabe45c7526) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add `myst-curvenote-web` conversion type, grant system admins `app:works:web-article-generation` by default, and pass `invoked_by_id` through job `onJobPatch`.
+
+- [#1103](https://github.com/curvenote/curvenote/pull/1103) [`e0f9a6c`](https://github.com/curvenote/curvenote/commit/e0f9a6ca2644c6e4e3ffaef885262fabe45c7526) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Restrict myst-curvenote-web converter input to files under the Foundry sources prefix (default `sources/myst`); drop loose filename/media fallbacks and reject path escape.
+
+- [#1103](https://github.com/curvenote/curvenote/pull/1103) [`e0f9a6c`](https://github.com/curvenote/curvenote/commit/e0f9a6ca2644c6e4e3ffaef885262fabe45c7526) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Rewrite `myst-curvenote-web` to build from `{cdn_key}/sources/myst` (Foundry `myst.yml`) and upload `_build/site` to CDN root.
+
+### Patch Changes
+
+- [#1103](https://github.com/curvenote/curvenote/pull/1103) [`e0f9a6c`](https://github.com/curvenote/curvenote/commit/e0f9a6ca2644c6e4e3ffaef885262fabe45c7526) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Link converter jobs at enqueue (drop Job.payload JSONB scan), send only sanitized linked-job fields to the browser, guard web Retry against in-flight jobs, and harden dockerAwareFetch (signal/Request headers) while sharing it for signed URL downloads.
+
+- Updated dependencies [[`e0f9a6c`](https://github.com/curvenote/curvenote/commit/e0f9a6ca2644c6e4e3ffaef885262fabe45c7526), [`e0f9a6c`](https://github.com/curvenote/curvenote/commit/e0f9a6ca2644c6e4e3ffaef885262fabe45c7526), [`e0f9a6c`](https://github.com/curvenote/curvenote/commit/e0f9a6ca2644c6e4e3ffaef885262fabe45c7526), [`cdd9bb3`](https://github.com/curvenote/curvenote/commit/cdd9bb349f3f1f5c0c7eb1637ba4ddc85820f448), [`e0f9a6c`](https://github.com/curvenote/curvenote/commit/e0f9a6ca2644c6e4e3ffaef885262fabe45c7526)]:
+  - @curvenote/common@0.10.0
+  - @curvenote/scms-core@0.29.0
+  - @curvenote/scms-tasks@0.29.0
+
 ## 0.3.13
 
 ### Patch Changes

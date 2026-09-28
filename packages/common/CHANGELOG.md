@@ -1,5 +1,15 @@
 # @curvenote/common
 
+## 0.10.0
+
+### Minor Changes
+
+- [#1103](https://github.com/curvenote/curvenote/pull/1103) [`e0f9a6c`](https://github.com/curvenote/curvenote/commit/e0f9a6ca2644c6e4e3ffaef885262fabe45c7526) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add `myst-curvenote-web` conversion type, grant system admins `app:works:web-article-generation` by default, and pass `invoked_by_id` through job `onJobPatch`.
+
+### Patch Changes
+
+- [#1103](https://github.com/curvenote/curvenote/pull/1103) [`e0f9a6c`](https://github.com/curvenote/curvenote/commit/e0f9a6ca2644c6e4e3ffaef885262fabe45c7526) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Restrict myst-curvenote-web converter input to files under the Foundry sources prefix (default `sources/myst`); drop loose filename/media fallbacks and reject path escape.
+
 ## 0.9.0
 
 ### Minor Changes
