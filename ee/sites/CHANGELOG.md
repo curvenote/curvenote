@@ -1,5 +1,24 @@
 # @curvenote/scms-sites-ext
 
+## 0.29.0
+
+### Minor Changes
+
+- [#1097](https://github.com/curvenote/curvenote/pull/1097) [`cdd9bb3`](https://github.com/curvenote/curvenote/commit/cdd9bb349f3f1f5c0c7eb1637ba4ddc85820f448) Thanks [@rowanc1](https://github.com/rowanc1)! - Add site admin UI for Typography (Google or uploaded fonts with live preview) and Domains & Redirects (ordered redirect rules with validation). Also adds font license metadata on Advanced, theme_config validation, and site design activity types.
+
+### Patch Changes
+
+- [#1106](https://github.com/curvenote/curvenote/pull/1106) [`c9ea28a`](https://github.com/curvenote/curvenote/commit/c9ea28a6f57a47331f424ba214e53d4f778af89c) Thanks [@agutierrezgit](https://github.com/agutierrezgit)! - Declare `myst-to-jats` as a direct dependency so `build:scms` builds it. `crossref-utils-sdk` imports
+  it, and in the monorepo it resolves to the workspace package, which Turbo did not build because no
+  workspace package depended on it.
+- Updated dependencies [[`e0f9a6c`](https://github.com/curvenote/curvenote/commit/e0f9a6ca2644c6e4e3ffaef885262fabe45c7526), [`e0f9a6c`](https://github.com/curvenote/curvenote/commit/e0f9a6ca2644c6e4e3ffaef885262fabe45c7526), [`cdd9bb3`](https://github.com/curvenote/curvenote/commit/cdd9bb349f3f1f5c0c7eb1637ba4ddc85820f448), [`e0f9a6c`](https://github.com/curvenote/curvenote/commit/e0f9a6ca2644c6e4e3ffaef885262fabe45c7526)]:
+  - @curvenote/common@0.10.0
+  - @curvenote/scms-server@0.29.0
+  - @curvenote/scms-core@0.29.0
+  - @curvenote/cdn@0.10.0
+  - @curvenote/check-definitions@0.17.5
+  - @curvenote/scms-db@0.29.0
+
 ## 0.28.0
 
 ### Minor Changes

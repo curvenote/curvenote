@@ -1,5 +1,16 @@
 # @curvenote/scms-tasks
 
+## 0.29.0
+
+### Patch Changes
+
+- [#1103](https://github.com/curvenote/curvenote/pull/1103) [`e0f9a6c`](https://github.com/curvenote/curvenote/commit/e0f9a6ca2644c6e4e3ffaef885262fabe45c7526) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Rewrite MinIO signed URL connect hosts via `dockerAwareFetch` so converter downloads and CDN uploads work from Docker while keeping SigV4 `Host` headers intact.
+
+- [#1103](https://github.com/curvenote/curvenote/pull/1103) [`e0f9a6c`](https://github.com/curvenote/curvenote/commit/e0f9a6ca2644c6e4e3ffaef885262fabe45c7526) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Link converter jobs at enqueue (drop Job.payload JSONB scan), send only sanitized linked-job fields to the browser, guard web Retry against in-flight jobs, and harden dockerAwareFetch (signal/Request headers) while sharing it for signed URL downloads.
+
+- Updated dependencies [[`e0f9a6c`](https://github.com/curvenote/curvenote/commit/e0f9a6ca2644c6e4e3ffaef885262fabe45c7526), [`e0f9a6c`](https://github.com/curvenote/curvenote/commit/e0f9a6ca2644c6e4e3ffaef885262fabe45c7526)]:
+  - @curvenote/common@0.10.0
+
 ## 0.28.0
 
 ## 0.27.0

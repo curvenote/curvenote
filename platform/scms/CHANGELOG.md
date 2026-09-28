@@ -1,5 +1,29 @@
 # @curvenote/scms
 
+## 0.29.0
+
+### Minor Changes
+
+- [#1103](https://github.com/curvenote/curvenote/pull/1103) [`e0f9a6c`](https://github.com/curvenote/curvenote/commit/e0f9a6ca2644c6e4e3ffaef885262fabe45c7526) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Show Web Version timeline status from converter jobs with `target: web` (queued / building / failed with Retry, or Ready with View). Retry re-enqueues the same conversion_type as the failed job (Word-to-web or Foundry MyST).
+
+### Patch Changes
+
+- [#1108](https://github.com/curvenote/curvenote/pull/1108) [`8ad5cfc`](https://github.com/curvenote/curvenote/commit/8ad5cfc021713757c9e6e30a70e42041afe14a45) Thanks [@agutierrezgit](https://github.com/agutierrezgit)! - Bundle `crossref-utils-sdk`, `myst-to-jats`, `myst-transforms` and `katex` into the SCMS server build.
+  `myst-transforms` imports katex's raw ESM `mhchem` source, which Vercel's Node runtime loaded as
+  CommonJS and crashed on at startup.
+
+- [#1103](https://github.com/curvenote/curvenote/pull/1103) [`e0f9a6c`](https://github.com/curvenote/curvenote/commit/e0f9a6ca2644c6e4e3ffaef885262fabe45c7526) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Link converter jobs at enqueue (drop Job.payload JSONB scan), send only sanitized linked-job fields to the browser, guard web Retry against in-flight jobs, and harden dockerAwareFetch (signal/Request headers) while sharing it for signed URL downloads.
+
+- Updated dependencies [[`e0f9a6c`](https://github.com/curvenote/curvenote/commit/e0f9a6ca2644c6e4e3ffaef885262fabe45c7526), [`e0f9a6c`](https://github.com/curvenote/curvenote/commit/e0f9a6ca2644c6e4e3ffaef885262fabe45c7526), [`cdd9bb3`](https://github.com/curvenote/curvenote/commit/cdd9bb349f3f1f5c0c7eb1637ba4ddc85820f448), [`c9ea28a`](https://github.com/curvenote/curvenote/commit/c9ea28a6f57a47331f424ba214e53d4f778af89c), [`e0f9a6c`](https://github.com/curvenote/curvenote/commit/e0f9a6ca2644c6e4e3ffaef885262fabe45c7526)]:
+  - @curvenote/common@0.10.0
+  - @curvenote/scms-server@0.29.0
+  - @curvenote/scms-core@0.29.0
+  - @curvenote/scms-sites-ext@0.29.0
+  - @curvenote/cdn@0.10.0
+  - @curvenote/scms-doc-preview@0.29.0
+  - @curvenote/check-definitions@0.17.5
+  - @curvenote/scms-db@0.29.0
+
 ## 0.28.0
 
 ### Patch Changes

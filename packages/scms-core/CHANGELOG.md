@@ -1,5 +1,21 @@
 # @curvenote/scms-core
 
+## 0.29.0
+
+### Minor Changes
+
+- [#1097](https://github.com/curvenote/curvenote/pull/1097) [`cdd9bb3`](https://github.com/curvenote/curvenote/commit/cdd9bb349f3f1f5c0c7eb1637ba4ddc85820f448) Thanks [@rowanc1](https://github.com/rowanc1)! - Add site admin UI for Typography (Google or uploaded fonts with live preview) and Domains & Redirects (ordered redirect rules with validation). Also adds font license metadata on Advanced, theme_config validation, and site design activity types.
+
+### Patch Changes
+
+- [#1103](https://github.com/curvenote/curvenote/pull/1103) [`e0f9a6c`](https://github.com/curvenote/curvenote/commit/e0f9a6ca2644c6e4e3ffaef885262fabe45c7526) Thanks [@stevejpurves](https://github.com/stevejpurves)! - Add `myst-curvenote-web` conversion type, grant system admins `app:works:web-article-generation` by default, and pass `invoked_by_id` through job `onJobPatch`.
+
+- Updated dependencies [[`e0f9a6c`](https://github.com/curvenote/curvenote/commit/e0f9a6ca2644c6e4e3ffaef885262fabe45c7526), [`e0f9a6c`](https://github.com/curvenote/curvenote/commit/e0f9a6ca2644c6e4e3ffaef885262fabe45c7526)]:
+  - @curvenote/common@0.10.0
+  - @curvenote/cdn@0.10.0
+  - @curvenote/check-definitions@0.17.5
+  - @curvenote/scms-db@0.29.0
+
 ## 0.28.0
 
 ### Minor Changes
