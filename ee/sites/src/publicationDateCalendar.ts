@@ -1,13 +1,26 @@
-import { formatDate } from '@curvenote/scms-core';
+import { formatDate, utcDayFromDate } from '@curvenote/scms-core';
 
 /** Earliest publication year offered in publication-date calendar dropdowns. */
 export const PUBLICATION_DATE_CALENDAR_FROM_YEAR = 1990;
 
 const PUBLICATION_DATE_DISPLAY_FORMAT = 'd MMMM yyyy';
 
-/** Formats a publication date for the summary card and listing. */
+const CALENDAR_DAY = /^[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}$/;
+
+function depositedDay(date: string): string {
+  if (CALENDAR_DAY.test(date)) {
+    return date;
+  }
+  const instant = new Date(date);
+  return Number.isNaN(instant.getTime()) ? date : utcDayFromDate(instant);
+}
+
+/**
+ * Formats a publication date for the summary card, listing and DOI dialog. A timestamp shows
+ * its UTC day, the day a DOI deposit sends to Crossref, whatever the viewer's timezone.
+ */
 export function formatPublicationDate(date: string): string {
-  return formatDate(date, PUBLICATION_DATE_DISPLAY_FORMAT);
+  return formatDate(depositedDay(date), PUBLICATION_DATE_DISPLAY_FORMAT);
 }
 
 /** Local calendar midnight — avoids timezone/`toISOString` day shifts in matchers. */
