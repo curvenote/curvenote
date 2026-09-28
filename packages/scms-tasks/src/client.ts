@@ -12,6 +12,7 @@ import {
 } from './uploads.js';
 import { createJobsHandler, type JobsHandler } from './jobs.js';
 import { createSubmissionsHandler, type SubmissionsHandler } from './submissions.js';
+import { dockerAwareFetch } from './dockerFetch.js';
 
 /** Options when creating the SCMS client. */
 export type SCMSClientOptions = {
@@ -100,7 +101,7 @@ export class SCMSClient {
           files,
           this.handshake,
           this.baseUrl,
-          fetch,
+          dockerAwareFetch,
           this.loggingOnlyMode,
         ),
       mergeContainsIntoWorkAndVersion: (
@@ -114,7 +115,7 @@ export class SCMSClient {
           contains,
           this.handshake,
           this.baseUrl,
-          fetch,
+          dockerAwareFetch,
           this.loggingOnlyMode,
         ),
     };

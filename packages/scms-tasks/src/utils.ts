@@ -1,5 +1,6 @@
 import type { Response } from 'express';
 import fs from 'node:fs';
+import { dockerAwareFetch } from './dockerFetch.js';
 
 /**
  * Options for a single JSON request to the SCMS API (PATCH or PUT).
@@ -29,7 +30,7 @@ export async function scmsRequest(options: ScmsRequestOptions): Promise<void> {
     return;
   }
   try {
-    const response = await fetch(url, {
+    const response = await dockerAwareFetch(url, {
       method,
       body: JSON.stringify(body),
       headers: {

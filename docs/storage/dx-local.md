@@ -24,7 +24,7 @@ bun run dx:reset                   # storage:use-minio + dx:up + storage:seed + 
 - S3 API / signing endpoint (host + browser): http://127.0.0.1:9000
 - Compose workers cannot use `127.0.0.1` (that is the container itself). Converter downloads should use the `minio` service hostname or `host.docker.internal:9000` from inside Docker.
 - Console: http://127.0.0.1:9001 (`curvenote` / `curvenote`)
-- Task converter: http://127.0.0.1:8080/ (built on first `dx:up` if `task-converter-local` is missing; rebuild with `bun run db:rebuild:converter`)
+- Task converter: http://127.0.0.1:8080/ (built on first `dx:up` if `task-converter-local` is missing; rebuild with `bun run dx:rebuild:converter`)
 - Seeded `WorkVersion.cdn` values come from `api.knownBucketInfoMap.pub.cdn` in app-config (published works live on the public bucket).
 
 ## Fixture mirror

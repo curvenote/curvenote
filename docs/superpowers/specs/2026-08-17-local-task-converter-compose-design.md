@@ -14,7 +14,7 @@ Bring the task-converter up with the default local SCMS stack (`bun run db:up`) 
 | Lifecycle | Always-on with default MinIO `db:up` |
 | Image source | Existing `task-converter-local:latest` (~2.2 GB) |
 | First run | Build image via `services/task-converter` `build:local` if missing |
-| Rebuild policy | Only when missing, or via explicit `bun run db:rebuild:converter` |
+| Rebuild policy | Only when missing, or via explicit `bun run dx:rebuild:converter` |
 | GCP profile | `db:up:gcp` stays Postgres-only (no converter) |
 | Pub/Sub | Unchanged — development keeps HTTP stub to localhost:8080 |
 | Callbacks | Already configured: `api.tasksCallbackUrl: http://host.docker.internal:3031/v1` |
@@ -24,7 +24,7 @@ Bring the task-converter up with the default local SCMS stack (`bun run db:up`) 
 1. Add a `task-converter` Compose service using `image: task-converter-local`, publish `8080:8080`, `extra_hosts: host.docker.internal:host-gateway`, healthcheck on `GET /`.
 2. `scripts/ensure-task-converter-image.sh` — if image absent, run `bun run build:local` in `services/task-converter`.
 3. `db:up` runs ensure → `docker compose up -d --wait postgres minio task-converter` → `minio-init`.
-4. `db:rebuild:converter` rebuilds the image and recreates the service.
+4. `dx:rebuild:converter` rebuilds the image and recreates the service.
 5. Document in local DX + task-converter README.
 
 ## Out of scope

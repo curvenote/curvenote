@@ -27,7 +27,11 @@ export const MACHINE_SYSTEM_ROLES: readonly SystemRole[] = [
 
 export const DEFAULT_SYSTEM_ROLE_SCOPES: Record<SystemRole, string[]> = {
   [SystemRole.SYSTEM_SERVICE]: [system.admin],
-  [SystemRole.ADMIN]: [system.admin],
+  [SystemRole.ADMIN]: [
+    system.admin,
+    // Required for Foundry → SCMS web preview (Web Version Created + converter dispatch UI).
+    app.works.webArticleGeneration,
+  ],
   [SystemRole.SERVICE]: [work.list, work.create],
   [SystemRole.USER]: [
     work.list,

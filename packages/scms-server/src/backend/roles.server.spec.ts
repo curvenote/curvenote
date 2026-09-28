@@ -71,8 +71,11 @@ describe('DEFAULT_SYSTEM_ROLE_SCOPES', () => {
     expect(DEFAULT_SYSTEM_ROLE_SCOPES[SystemRole.SYSTEM_SERVICE]).toEqual([system.admin]);
   });
 
-  test('ADMIN retains system.admin', () => {
-    expect(DEFAULT_SYSTEM_ROLE_SCOPES[SystemRole.ADMIN]).toEqual([system.admin]);
+  test('ADMIN retains system.admin and web-article-generation', () => {
+    expect(DEFAULT_SYSTEM_ROLE_SCOPES[SystemRole.ADMIN]).toEqual([
+      system.admin,
+      'app:works:web-article-generation',
+    ]);
   });
 });
 

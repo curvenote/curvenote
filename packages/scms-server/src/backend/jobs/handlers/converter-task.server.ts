@@ -7,6 +7,7 @@ import type {
   WorkVersionPayload,
   WorkVersionMetadataPayload,
 } from '@curvenote/common';
+import { filterFilesToMystWebPackage, resolveMystWebSourcesPrefix } from '@curvenote/common';
 import { uuidv7 } from 'uuidv7';
 import { getPrismaClient } from '../../prisma.server.js';
 import { createHandshakeToken } from '../../sign.handshake.server.js';
@@ -153,18 +154,40 @@ export async function converterTaskHandler(ctx: Context, data: CreateJob) {
   }
   rollingLog.push(rollingLogEntry('job loaded', job.id));
 
-  await prisma.linkedJob.create({
-    data: {
-      id: uuidv7(),
-      date_created: job.date_created,
-      job_id: job.id,
-      work_version_id: payload.work_version_id,
-    },
+  // Prefer linking at enqueue (QUEUED visible immediately). Keep create-if-missing for
+  // legacy/direct dispatches that skipped enqueueAndDispatchJob.
+  const existingLink = await prisma.linkedJob.findFirst({
+    where: { job_id: job.id },
     select: { id: true },
   });
+  if (!existingLink) {
+    await prisma.linkedJob.create({
+      data: {
+        id: uuidv7(),
+        date_created: job.date_created,
+        job_id: job.id,
+        work_version_id: payload.work_version_id,
+      },
+      select: { id: true },
+    });
+  }
 
   const workVersionPayload = workVersionToPayload(workVersionRow);
   if (workVersionPayload.metadata) {
+    // myst-curvenote-web: send only Foundry package files under sourcesPrefix (default sources/myst).
+    // Do not merge general SCMS files (DOCX media, etc.) into the converter payload.
+    if (payload.conversion_type === 'myst-curvenote-web') {
+      const meta = workVersionPayload.metadata as WorkVersionMetadataPayload & {
+        foundry?: { files?: Record<string, unknown> };
+        files?: Record<string, unknown>;
+      };
+      const sourcesPrefix = resolveMystWebSourcesPrefix(meta);
+      const cdnKey = workVersionRow.cdn_key?.trim() ?? '';
+      const foundryFiles =
+        meta.foundry?.files && typeof meta.foundry.files === 'object' ? meta.foundry.files : {};
+      const preferred = Object.keys(foundryFiles).length > 0 ? foundryFiles : (meta.files ?? {});
+      meta.files = filterFilesToMystWebPackage(preferred, sourcesPrefix, cdnKey);
+    }
     const signedMetadata = await signFilesInMetadata(
       workVersionPayload.metadata as Parameters<typeof signFilesInMetadata>[0],
       workVersionRow.cdn ?? '',

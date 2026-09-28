@@ -3,14 +3,83 @@ import type { SecureContext } from '@curvenote/scms-server';
 import type { Prisma, WorkVersion } from '@curvenote/scms-db';
 import type { CheckServiceRunRow } from './checkServiceRun.shared';
 import { isCheckServiceRunSupersededByRetry } from './checkServiceRun.shared';
+import { isWebConversionPayload } from './webConversion.shared';
 
-export type LinkedJobWithStatus = { id: string; status: string };
+/**
+ * Safe linked-job fields for the work details loader (sent to the browser).
+ * Never includes raw payload / results / messages.
+ */
+export type LinkedJobWithStatus = {
+  id: string;
+  status: string;
+  job_type: string;
+  date_created: string;
+  date_modified: string;
+  /** Derived server-side from payload.target === 'web' (any web conversion_type). */
+  isWebConversion?: boolean;
+  /** Sanitized error for failed/cancelled web conversion jobs only. */
+  webError?: string;
+};
 
 export type { CheckServiceRunRow } from './checkServiceRun.shared';
 export { isCheckServiceRunSupersededByRetry } from './checkServiceRun.shared';
 
 export function filterVisibleCheckServiceRuns(runs: CheckServiceRunRow[]): CheckServiceRunRow[] {
   return runs.filter((run) => !isCheckServiceRunSupersededByRetry(run));
+}
+
+function payloadRecord(payload: unknown): Record<string, unknown> | null {
+  if (payload == null || typeof payload !== 'object' || Array.isArray(payload)) return null;
+  return payload as Record<string, unknown>;
+}
+
+/** Best-effort public error string from a failed/cancelled converter job (server-only). */
+function sanitizeWebConversionError(job: {
+  status: string;
+  messages: unknown;
+  results: unknown;
+}): string | undefined {
+  const messages = Array.isArray(job.messages) ? job.messages : [];
+  const lastMessage =
+    messages.length > 0 ? String(messages[messages.length - 1]).trim() : undefined;
+  if (lastMessage) return lastMessage;
+
+  const results = payloadRecord(job.results);
+  const fromResults = results?.error;
+  if (typeof fromResults === 'string' && fromResults.trim()) return fromResults.trim();
+
+  if (job.status === 'CANCELLED') return 'Web conversion was cancelled.';
+  if (job.status === 'FAILED') return 'Web conversion failed.';
+  return undefined;
+}
+
+function toLinkedJobClient(job: {
+  id: string;
+  status: string;
+  job_type: string;
+  payload: unknown;
+  messages: unknown;
+  results: unknown;
+  date_created: string | Date;
+  date_modified: string | Date;
+}): LinkedJobWithStatus {
+  const payload = payloadRecord(job.payload);
+  const isWebConversion = job.job_type === 'CONVERTER_TASK' && isWebConversionPayload(payload);
+  const base: LinkedJobWithStatus = {
+    id: job.id,
+    status: job.status,
+    job_type: job.job_type,
+    date_created: String(job.date_created),
+    date_modified: String(job.date_modified),
+  };
+  if (!isWebConversion) return base;
+
+  const failed = job.status === 'FAILED' || job.status === 'CANCELLED';
+  return {
+    ...base,
+    isWebConversion: true,
+    ...(failed ? { webError: sanitizeWebConversionError(job) } : {}),
+  };
 }
 
 /** Check service runs grouped by work_version_id (for work details timeline). */
@@ -57,6 +126,11 @@ export async function dbGetCheckServiceRunsByWorkVersionIds(
   return map;
 }
 
+/**
+ * Linked jobs for work versions. Payload/results/messages are read server-side only
+ * to derive `isWebConversion` / `webError`; they are not sent to the client.
+ * Converter jobs are linked at enqueue, so QUEUED jobs appear without a JSONB scan.
+ */
 export async function dbGetLinkedJobsByWorkVersionIds(
   workVersionIds: string[],
 ): Promise<Record<string, LinkedJobWithStatus[]>> {
@@ -64,14 +138,32 @@ export async function dbGetLinkedJobsByWorkVersionIds(
   const prisma = await getPrismaClient();
   const rows = await prisma.linkedJob.findMany({
     where: { work_version_id: { in: workVersionIds } },
-    include: { job: { select: { id: true, status: true } } },
+    include: {
+      job: {
+        select: {
+          id: true,
+          status: true,
+          job_type: true,
+          payload: true,
+          messages: true,
+          results: true,
+          date_created: true,
+          date_modified: true,
+        },
+      },
+    },
   });
   const map: Record<string, LinkedJobWithStatus[]> = {};
+  const seenJobIds = new Set<string>();
+
   for (const row of rows) {
+    if (seenJobIds.has(row.job.id)) continue;
+    seenJobIds.add(row.job.id);
     const list = map[row.work_version_id] ?? [];
-    list.push({ id: row.job.id, status: row.job.status });
+    list.push(toLinkedJobClient(row.job));
     map[row.work_version_id] = list;
   }
+
   return map;
 }
 

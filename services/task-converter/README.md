@@ -91,7 +91,7 @@ SCMS stack bring-up: **[`DEVELOPMENT.md`](../../DEVELOPMENT.md)**. Default MinIO
 
 ```bash
 bun run dx:up                 # builds task-converter-local on first run if missing
-bun run db:rebuild:converter  # rebuild image + recreate container
+bun run dx:rebuild:converter  # rebuild image + recreate container
 bun run db:logs               # includes task-converter
 ```
 

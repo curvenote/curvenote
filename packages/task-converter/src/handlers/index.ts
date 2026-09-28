@@ -9,6 +9,7 @@ import type { ConversionHandler } from './types.js';
 import { runDocxPandocMystPdf } from './docx-pandoc-myst-pdf/index.js';
 import { runDocxLowriterPdf } from './docx-lowriter-pdf.js';
 import { runDocxPandocMystWeb } from './docx-pandoc-myst-web/index.js';
+import { runMystCurvenoteWeb } from './myst-curvenote-web/index.js';
 
 export type { ConversionHandler, ConversionHandlerContext } from './types.js';
 
@@ -18,6 +19,7 @@ export const HANDLERS: Record<ConversionType, ConversionHandler> = {
   'docx-lowriter-pdf': runDocxLowriterPdf,
   'docx-pd-curvenote-web': runDocxPandocMystWeb,
   'docx-pandoc-myst-web': runDocxPandocMystWeb,
+  'myst-curvenote-web': runMystCurvenoteWeb,
 };
 
 export function getHandler(conversionType: ConversionType): ConversionHandler {
