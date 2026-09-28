@@ -1,5 +1,24 @@
 # @curvenote/scms-sites-ext
 
+## 0.29.1
+
+### Patch Changes
+
+- [#1109](https://github.com/curvenote/curvenote/pull/1109) [`b897c75`](https://github.com/curvenote/curvenote/commit/b897c754caa1675b35032fdface65f7622bf6bb8) Thanks [@agutierrezgit](https://github.com/agutierrezgit)! - Show the publication date in the Register DOI dialog as the calendar day sent to Crossref. It was
+  formatted from a UTC timestamp in the browser's timezone, so users west of UTC saw the day before.
+  Publication dates stored with a time now show their UTC day everywhere (submission details,
+  listing, DOI dialog), matching the deposit. Add `utcDayFromDate` to `@curvenote/scms-core` for the
+  UTC calendar day of a `Date`.
+
+- [#1111](https://github.com/curvenote/curvenote/pull/1111) [`7c27751`](https://github.com/curvenote/curvenote/commit/7c27751e90593f1fdb0b659b7b76dd992282ceeb) Thanks [@agutierrezgit](https://github.com/agutierrezgit)! - The Register DOI dialog lists missing authors, abstract and license as separate recommended-metadata
+  warnings. Any license with a URL is now deposited, not only Creative Commons ones. MyST collaborations
+  are deposited as Crossref organizations, and a person with a single name now blocks registration
+  instead of being left out of the record (CN-2614).
+- Updated dependencies [[`b897c75`](https://github.com/curvenote/curvenote/commit/b897c754caa1675b35032fdface65f7622bf6bb8)]:
+  - @curvenote/scms-core@0.29.1
+  - @curvenote/scms-server@0.29.1
+  - @curvenote/scms-db@0.29.1
+
 ## 0.29.0
 
 ### Minor Changes
