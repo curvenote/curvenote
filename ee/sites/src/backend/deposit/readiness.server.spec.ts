@@ -20,7 +20,7 @@ const crossref = {
 
 const summary: DepositSummary = {
   title: 'Published title',
-  date: '2022-10-11T00:00:00.000Z',
+  date: '2022-10-11',
   authors: [{ name: 'Steve Purves' }],
   hasAbstract: true,
   citationCount: 0,

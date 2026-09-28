@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { toXml } from 'xast-util-to-xml';
+import { publicationDateXml } from 'crossref-utils-sdk';
 import { toDeposit } from './mapper.js';
 import { lapalmaOptions, lapalmaSource } from './fixtures/source.lapalma.js';
 
@@ -48,12 +49,21 @@ describe('toDeposit', () => {
     expect(summary).toEqual({
       title: 'La Palma Seismicity 2021',
       subtitle: 'An analysis of earthquake swarms',
-      date: '2022-10-11T00:00:00.000Z',
+      date: '2022-10-11',
       authors: expect.arrayContaining([{ name: 'Steve Purves', orcid: '0000-0002-0760-5497' }]),
       license: 'https://creativecommons.org/licenses/by-sa/4.0/',
       hasAbstract: true,
       citationCount: 1,
     });
+  });
+
+  it('summarises the calendar day the preprint deposits', () => {
+    const { preprint, summary } = toDeposit(
+      lapalmaSource({ dates: { submissionPublished: '2026-06-19' } }),
+      lapalmaOptions,
+    );
+    expect(toXml(publicationDateXml(preprint!.date)!)).toContain('<day>19</day>');
+    expect(summary?.date).toBe('2026-06-19');
   });
 
   it('leaves the summary out when something blocks', () => {

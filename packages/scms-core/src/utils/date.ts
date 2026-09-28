@@ -9,6 +9,13 @@ export function hyphenatedFromDate(date: Date): string {
 }
 
 /**
+ * Converts a Date object to its UTC calendar day, YYYY-MM-DD
+ */
+export function utcDayFromDate(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+/**
  * Converts a YYYY-MM-DD string to a Date object
  */
 export function hyphenatedToDate(date: string): Date {

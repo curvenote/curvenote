@@ -72,7 +72,7 @@ export type DepositOptions = {
 export type DepositSummary = {
   title: string;
   subtitle?: string;
-  /** Posted date, ISO. */
+  /** Posted date as deposited: the UTC calendar day, `YYYY-MM-DD`. */
   date: string;
   authors: { name: string; orcid?: string }[];
   license?: string;
