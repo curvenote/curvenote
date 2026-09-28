@@ -46,6 +46,8 @@ type FileLike = { path?: string; name?: string; [key: string]: unknown };
 
 /**
  * Keep only file-map entries whose path (or key) sits under the MyST package prefix.
+ * Always writes a concrete `path` so downstream signing (which only reads `file.path`)
+ * can produce signedUrl for key-only / empty-path Foundry entries.
  */
 export function filterFilesToMystWebPackage(
   files: Record<string, unknown>,
@@ -59,7 +61,7 @@ export function filterFilesToMystWebPackage(
     const full = String(file.path || pathKey || '').replace(/^\/+/, '');
     const rel = mystWebPackageRelativePath(full, sourcesPrefix, cdnKey);
     if (!rel || !isSafeMystWebPackageRelativePath(rel)) continue;
-    out[pathKey] = entry;
+    out[pathKey] = file.path === full ? entry : { ...file, path: full };
   }
   return out;
 }

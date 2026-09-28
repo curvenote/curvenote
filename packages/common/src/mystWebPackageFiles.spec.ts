@@ -83,4 +83,21 @@ describe('mystWebPackageFiles', () => {
       [`${cdnKey}/${prefix}/manuscript.md`, `${cdnKey}/${prefix}/myst.yml`].sort(),
     );
   });
+
+  it('normalizes path onto key-only and empty-path Foundry entries', () => {
+    const manuscriptKey = `${cdnKey}/${prefix}/manuscript.md`;
+    const mystYmlKey = `${cdnKey}/${prefix}/myst.yml`;
+    const mediaKey = `${prefix}/media/fig.png`;
+    const files = {
+      [manuscriptKey]: { name: 'manuscript.md', size: 1, type: 'text/markdown' },
+      [mystYmlKey]: { name: 'myst.yml', size: 1, type: 'text/yaml', path: '' },
+      [mediaKey]: { name: 'fig.png', size: 1, type: 'image/png' },
+      outside: { name: 'other.docx', size: 1, type: 'application/octet-stream' },
+    };
+    const filtered = filterFilesToMystWebPackage(files, prefix, cdnKey);
+    expect(Object.keys(filtered).sort()).toEqual([manuscriptKey, mediaKey, mystYmlKey].sort());
+    expect(filtered[manuscriptKey]).toMatchObject({ path: manuscriptKey, name: 'manuscript.md' });
+    expect(filtered[mystYmlKey]).toMatchObject({ path: mystYmlKey, name: 'myst.yml' });
+    expect(filtered[mediaKey]).toMatchObject({ path: mediaKey, name: 'fig.png' });
+  });
 });

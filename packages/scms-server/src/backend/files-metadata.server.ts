@@ -25,12 +25,15 @@ export async function signFilesInMetadata<
   const filesWithSignedUrls: Record<string, FileMetadataSectionItem> = {};
   await Promise.all(
     Object.entries(metadata.files).map(async ([key, file]) => {
+      // Prefer file.path; fall back to map key for Foundry-style key-only entries.
+      const storagePath = (file?.path || key || '').replace(/^\/+/, '');
       try {
-        const fileInstance = new File(backend, file.path, bucket);
+        if (!storagePath) throw new Error('Missing file path');
+        const fileInstance = new File(backend, storagePath, bucket);
         const signedUrl = isPrivateCdn ? await fileInstance.sign() : await fileInstance.url();
-        filesWithSignedUrls[key] = { ...file, signedUrl };
+        filesWithSignedUrls[key] = { ...file, path: storagePath, signedUrl };
       } catch (err) {
-        console.warn('Could not sign file for metadata', { path: file?.path, err });
+        console.warn('Could not sign file for metadata', { path: storagePath || file?.path, err });
         filesWithSignedUrls[key] = file;
       }
     }),
