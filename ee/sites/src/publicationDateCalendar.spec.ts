@@ -21,7 +21,7 @@ describe('formatPublicationDate', () => {
     expect(formatPublicationDate('2025-8-1')).toBe('1 August 2025');
   });
 
-  it('shows a timestamp as the UTC day deposited, not the local day', () => {
+  it('shows a timestamp as its UTC day, not the local day', () => {
     expect(formatPublicationDate('2026-08-26T20:39:18.480Z')).toBe('26 August 2026');
   });
 

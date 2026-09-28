@@ -7,7 +7,7 @@ const PUBLICATION_DATE_DISPLAY_FORMAT = 'd MMMM yyyy';
 
 const CALENDAR_DAY = /^[0-9]{4}-[0-9]{1,2}-[0-9]{1,2}$/;
 
-function depositedDay(date: string): string {
+function calendarDay(date: string): string {
   if (CALENDAR_DAY.test(date)) {
     return date;
   }
@@ -16,11 +16,11 @@ function depositedDay(date: string): string {
 }
 
 /**
- * Formats a publication date for the summary card, listing and DOI dialog. A timestamp shows
- * its UTC day, the day a DOI deposit sends to Crossref, whatever the viewer's timezone.
+ * Formats a publication date as a calendar day. A timestamp shows its UTC day, so every viewer
+ * sees the same day whatever their timezone.
  */
 export function formatPublicationDate(date: string): string {
-  return formatDate(depositedDay(date), PUBLICATION_DATE_DISPLAY_FORMAT);
+  return formatDate(calendarDay(date), PUBLICATION_DATE_DISPLAY_FORMAT);
 }
 
 /** Local calendar midnight — avoids timezone/`toISOString` day shifts in matchers. */
