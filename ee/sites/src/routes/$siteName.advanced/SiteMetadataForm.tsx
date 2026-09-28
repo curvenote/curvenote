@@ -1,6 +1,6 @@
+import { useEffect, useMemo, useState } from 'react';
 import { useFetcher } from 'react-router';
 import { primitives, ui, useEditor } from '@curvenote/scms-core';
-import { useState } from 'react';
 import type { SiteDTO } from '@curvenote/common';
 import type { Prisma } from '@curvenote/scms-db';
 import { dump, load } from 'js-yaml';
@@ -30,6 +30,12 @@ function sortKeys(a: string, b: string, obj: any): number {
   return a.localeCompare(b);
 }
 
+function dumpMetadata(metadata: Prisma.JsonObject) {
+  return dump(metadata, {
+    sortKeys: (a, b) => sortKeys(a, b, metadata),
+  });
+}
+
 export function SiteMetadataForm({
   site,
   metadata,
@@ -38,14 +44,21 @@ export function SiteMetadataForm({
   metadata: Prisma.JsonObject;
 }) {
   const fetcher = useFetcher<{ error?: string; info?: string }>();
-
+  const initialYaml = useMemo(() => dumpMetadata(metadata), [metadata]);
+  const [saved, setSaved] = useState(initialYaml);
+  const [draft, setDraft] = useState(initialYaml);
   const [error, setError] = useState<string | undefined>();
-  const { doc, ref, view } = useEditor(
-    dump(metadata, {
-      sortKeys: (a, b) => sortKeys(a, b, metadata),
-    }),
-    'yaml',
-  );
+  const { ref, view } = useEditor(initialYaml, 'yaml', setDraft);
+  const dirty = draft !== saved;
+  const busy = fetcher.state === 'loading' || fetcher.state === 'submitting';
+
+  // After a successful save, treat the current editor text as the new baseline
+  useEffect(() => {
+    if (fetcher.state !== 'idle' || !fetcher.data || fetcher.data.error || !view) return;
+    const next = view.state.doc.toString();
+    setSaved(next);
+    setDraft(next);
+  }, [fetcher.state, fetcher.data, view]);
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -72,29 +85,24 @@ export function SiteMetadataForm({
     }
   }
 
+  const handleReset = () => {
+    view?.dispatch({
+      changes: {
+        from: 0,
+        to: view.state.doc.length,
+        insert: saved,
+      },
+    });
+    setDraft(saved);
+    setError(undefined);
+  };
+
   const controls = (
     <div className="flex justify-end space-x-3">
-      <ui.Button
-        type="button"
-        variant="secondary"
-        disabled={fetcher.state === 'loading' || fetcher.state === 'submitting'}
-        onClick={() => {
-          view?.dispatch({
-            changes: {
-              from: 0,
-              to: view?.state.doc.length ?? 0,
-              insert: doc,
-            },
-          });
-        }}
-      >
+      <ui.Button type="button" variant="secondary" disabled={!dirty || busy} onClick={handleReset}>
         Reset
       </ui.Button>
-      <ui.Button
-        type="submit"
-        disabled={fetcher.state === 'loading' || fetcher.state === 'submitting'}
-        variant="default"
-      >
+      <ui.Button type="submit" disabled={!dirty || busy} variant="default">
         {fetcher.state === 'submitting' ? 'Saving...' : 'Save'}
       </ui.Button>
     </div>

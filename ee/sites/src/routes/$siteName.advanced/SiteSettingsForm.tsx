@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useFetcher } from 'react-router';
 import { ui, primitives } from '@curvenote/scms-core';
 import { InfoIcon } from 'lucide-react';
@@ -12,7 +13,29 @@ export function SiteSettingsForm({
   siteWithAppData: SiteWithAppData;
 }) {
   const fetcher = useFetcher<{ error?: string; info?: string }>();
-  const magicLinksEnabled = siteWithAppData.data?.magicLinksEnabled ?? false;
+  const saved = {
+    title: site.title ?? '',
+    description: site.description ?? '',
+    private: !!site.private,
+    magicLinksEnabled: siteWithAppData.data?.magicLinksEnabled ?? false,
+  };
+  const [title, setTitle] = useState(saved.title);
+  const [description, setDescription] = useState(saved.description);
+  const [isPrivate, setIsPrivate] = useState(saved.private);
+  const [magicLinksEnabled, setMagicLinksEnabled] = useState(saved.magicLinksEnabled);
+  const dirty =
+    title !== saved.title ||
+    description !== saved.description ||
+    isPrivate !== saved.private ||
+    magicLinksEnabled !== saved.magicLinksEnabled;
+  const busy = fetcher.state === 'submitting';
+
+  const handleReset = () => {
+    setTitle(saved.title);
+    setDescription(saved.description);
+    setIsPrivate(saved.private);
+    setMagicLinksEnabled(saved.magicLinksEnabled);
+  };
 
   return (
     <primitives.Card lift className="max-w-4xl px-6 py-4 space-y-4" validateUsing={fetcher}>
@@ -30,9 +53,10 @@ export function SiteSettingsForm({
           <ui.Input
             id="title"
             name="title"
-            defaultValue={site.title ?? ''}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
             placeholder="Enter site title"
-            disabled={fetcher.state === 'submitting'}
+            disabled={busy}
           />
         </div>
 
@@ -43,9 +67,10 @@ export function SiteSettingsForm({
           <ui.Textarea
             id="description"
             name="description"
-            defaultValue={site.description ?? ''}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
             placeholder="Enter site description"
-            disabled={fetcher.state === 'submitting'}
+            disabled={busy}
           />
         </div>
 
@@ -54,8 +79,9 @@ export function SiteSettingsForm({
             id="private"
             name="private"
             value="private"
-            defaultChecked={site.private}
-            disabled={fetcher.state === 'submitting'}
+            checked={isPrivate}
+            onCheckedChange={(checked) => setIsPrivate(checked === true)}
+            disabled={busy}
           />
           <label htmlFor="private" className="text-sm font-medium">
             Private site
@@ -83,8 +109,9 @@ export function SiteSettingsForm({
             id="magicLinksEnabled"
             name="magicLinksEnabled"
             value="magicLinksEnabled"
-            defaultChecked={magicLinksEnabled}
-            disabled={fetcher.state === 'submitting'}
+            checked={magicLinksEnabled}
+            onCheckedChange={(checked) => setMagicLinksEnabled(checked === true)}
+            disabled={busy}
           />
           <label htmlFor="magicLinksEnabled" className="text-sm font-medium">
             Enable Access Links (Magic Links)
@@ -106,9 +133,17 @@ export function SiteSettingsForm({
           </ui.TooltipProvider>
         </div>
 
-        <div className="flex justify-end">
-          <ui.Button type="submit" disabled={fetcher.state === 'submitting'} variant="default">
-            {fetcher.state === 'submitting' ? 'Saving...' : 'Save'}
+        <div className="flex justify-end space-x-3">
+          <ui.Button
+            type="button"
+            variant="secondary"
+            disabled={!dirty || busy}
+            onClick={handleReset}
+          >
+            Reset
+          </ui.Button>
+          <ui.Button type="submit" disabled={!dirty || busy} variant="default">
+            {busy ? 'Saving...' : 'Save'}
           </ui.Button>
         </div>
       </fetcher.Form>
