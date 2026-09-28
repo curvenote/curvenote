@@ -23,6 +23,16 @@ enum ActivityType {
   DOI_REGISTRATION_STARTED
   DOI_REGISTRATION_COMPLETED
   DOI_REGISTRATION_FAILED
+  /// Website & Design saved (title, logos, colors, footer). `data` lists the fields that changed.
+  SITE_DESIGN_UPDATED
+  /// `theme_config.fonts` or the font license files changed. `data` has slots/sources and whether
+  /// a previous verification was dropped.
+  SITE_FONTS_UPDATED
+  /// `theme_config.redirects` saved. `data` has rule and group counts.
+  SITE_REDIRECTS_UPDATED
+  /// A platform admin marked the site's font license files verified / not verified.
+  FONT_LICENSE_VERIFIED
+  FONT_LICENSE_UNVERIFIED
   COLLECTION_DELETED
   COLLECTION_CREATED
   COLLECTION_UPDATED

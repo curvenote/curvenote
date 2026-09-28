@@ -1,9 +1,23 @@
 import { data } from 'react-router';
 import type { SiteContext } from '@curvenote/scms-server';
-import { getPrismaClient, withValidFormData } from '@curvenote/scms-server';
+import { getPrismaClient, safeSiteMetadataUpdate, withValidFormData } from '@curvenote/scms-server';
 import { zfd } from 'zod-form-data';
 import { z } from 'zod';
+import { coerceToObject } from '@curvenote/scms-core';
+import { ActivityType, type Prisma } from '@curvenote/scms-db';
+import { logSiteActivity } from '../../themeConfig/siteActivity.server.js';
 import { dbSetSiteRestricted } from './db.server.js';
+import type {
+  FontLicense,
+  ThemeFontsConfig,
+  ThemeRedirectsConfig,
+} from '../../themeConfig/types.js';
+import {
+  FontsSchema,
+  RedirectsSchema,
+  fontsError,
+  redirectsError,
+} from '../../themeConfig/validate.js';
 
 export { EditorView } from '@codemirror/view';
 
@@ -20,6 +34,26 @@ export async function actionUpdateSiteByJson(ctx: SiteContext, formData: FormDat
     const parsedMetadata = JSON.parse(metadata);
     if (typeof parsedMetadata !== 'object') {
       return data({ error: 'Invalid metadata format, must be an object' }, { status: 400 });
+    }
+
+    // The escape hatch is held to the same rules as the structured editors, so raw edits can
+    // never store fonts or redirects the theme would reject or silently drop.
+    const themeConfig = parsedMetadata?.theme_config;
+    if (themeConfig && typeof themeConfig === 'object') {
+      if (themeConfig.fonts !== undefined) {
+        const result = FontsSchema.safeParse(themeConfig.fonts);
+        const problem = result.success
+          ? fontsError(result.data as ThemeFontsConfig)
+          : 'theme_config.fonts is malformed';
+        if (problem) return data({ error: `Fonts: ${problem}` }, { status: 400 });
+      }
+      if (themeConfig.redirects !== undefined) {
+        const result = RedirectsSchema.safeParse(themeConfig.redirects);
+        const problem = result.success
+          ? redirectsError(result.data as ThemeRedirectsConfig)
+          : 'theme_config.redirects is malformed';
+        if (problem) return data({ error: `Redirects: ${problem}` }, { status: 400 });
+      }
     }
 
     // Remove fields that are duplicated in the site table
@@ -117,4 +151,26 @@ export async function actionUpdateSiteSettings(ctx: SiteContext, formData: FormD
       return data({ error: 'Failed to update site settings' }, { status: 500 });
     }
   });
+}
+
+/** Platform admin marks a site's font license files as read and accepted (or not). */
+export async function actionSetFontLicenseVerified(ctx: SiteContext, formData: FormData) {
+  const verified = formData.get('verified') === 'true';
+  let files = 0;
+  await safeSiteMetadataUpdate(ctx.site.id, (metadata) => {
+    const updated = coerceToObject(metadata);
+    const license = (updated.font_license as FontLicense | undefined) ?? {};
+    files = license.files?.length ?? 0;
+    updated.font_license = { ...license, verified: verified || undefined } as Prisma.JsonObject;
+    return updated;
+  });
+  await logSiteActivity(
+    ctx,
+    verified ? ActivityType.FONT_LICENSE_VERIFIED : ActivityType.FONT_LICENSE_UNVERIFIED,
+    { license_files: files },
+  );
+  return {
+    message: 'ok',
+    info: verified ? 'Font license marked verified' : 'Font license verification removed',
+  };
 }
