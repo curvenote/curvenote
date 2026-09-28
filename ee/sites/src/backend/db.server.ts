@@ -6,6 +6,8 @@ import { getPrismaClient } from '@curvenote/scms-server';
  */
 export type SiteAppData = {
   magicLinksEnabled?: boolean;
+  /** Enterprise: site admins may register DOIs under the site's own Crossref prefix. */
+  doiCustomPrefixEnabled?: boolean;
   // Add other app-specific site data fields here as needed
 };
 

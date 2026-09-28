@@ -41,6 +41,7 @@ export const cdnWorkVersionSelect = {
 export const siteWorkSubmissionSelect = {
   id: true,
   date_published: true,
+  doi: true,
   kind: { select: { id: true, name: true, content: true, default: true } },
   collection: {
     select: { id: true, name: true, slug: true, workflow: true, content: true, open: true },

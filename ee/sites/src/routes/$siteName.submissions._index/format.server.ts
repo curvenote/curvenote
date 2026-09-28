@@ -1,5 +1,5 @@
 import type { TagDTO } from '@curvenote/common';
-import { coerceToObject } from '@curvenote/scms-core';
+import { coerceToObject, resolveSiteWorkDoi } from '@curvenote/scms-core';
 import { doi as doiUtils } from 'doi-utils';
 import { getConfiguredWorkflow, type SiteContext } from '@curvenote/scms-server';
 import type { IndexListingRow } from './db.server.js';
@@ -19,6 +19,17 @@ import type { SubmissionsIndexItem } from './types.js';
 /** Editorial tags on a listing row. */
 export function formatIndexItemTags(rows: IndexListingRow['tags']): TagDTO[] {
   return rows.map((row) => ({ id: row.tag.id, name: row.tag.name, label: row.tag.label }));
+}
+
+/** The DOI the card shows: a registered one first, then the newest version's, then the work's. */
+export function formatIndexItemDoi(row: Pick<IndexListingRow, 'doi' | 'work' | 'versions'>) {
+  return doiUtils.normalize(
+    resolveSiteWorkDoi({
+      submission: row.doi,
+      workVersion: row.versions[0]?.work_version.doi,
+      work: row.work?.doi,
+    }),
+  );
 }
 
 export function formatSubmissionsIndexItems(
@@ -41,7 +52,7 @@ export function formatSubmissionsIndexItems(
       datePublished: row.date_published ?? undefined,
       dateFirstSubmitted: row.date_created,
       dateLastUpdated: row.activity[0]?.date_created ?? row.date_created,
-      doi: doiUtils.normalize(work?.doi ?? row.work?.doi),
+      doi: formatIndexItemDoi(row),
       versionTag: row.versionTag,
       status,
       statusLabel: workflow.states[status]?.label ?? status,

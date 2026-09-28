@@ -58,10 +58,16 @@ function yamlLinter(view: EditorView) {
   return diagnostics;
 }
 
-export function useEditor(initialState: string, lang: 'json' | 'yaml' = 'json') {
+export function useEditor(
+  initialState: string,
+  lang: 'json' | 'yaml' = 'json',
+  onChange?: (value: string) => void,
+) {
   const [doc, setDoc] = useState(initialState);
   const ref = useRef<HTMLDivElement | null>(null);
   const [view, setView] = useState<EditorView>();
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
 
   const languageExtension = lang === 'json' ? jsonLang : yamlLang;
   const linterExtension = lang === 'json' ? linter(jsonParseLinter()) : linter(yamlLinter);
@@ -106,6 +112,9 @@ export function useEditor(initialState: string, lang: 'json' | 'yaml' = 'json') 
             ...lintKeymap,
             indentWithTab,
           ]),
+          EditorView.updateListener.of((update) => {
+            if (update.docChanged) onChangeRef.current?.(update.state.doc.toString());
+          }),
         ],
         languageExtension(),
       ],

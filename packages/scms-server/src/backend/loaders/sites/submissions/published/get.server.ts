@@ -1,6 +1,7 @@
 import type { SiteContext } from '../../../../context.site.server.js';
 import type { HostSpec, SiteWorkDTO, SiteWorkVersionDTO, TagRefDTO } from '@curvenote/common';
 import { formatDate, concatSiteWorkTags, pickVersionTag } from '@curvenote/common';
+import { resolveSiteWorkDoi } from '@curvenote/scms-core';
 import { getPrismaClient } from '../../../../prisma.server.js';
 import type { Prisma } from '@curvenote/scms-db';
 import type {
@@ -112,7 +113,11 @@ export function formatSiteWorkDTO(
   const submission_version_id = dbo.id;
   const version_id = dbo.work_version.id;
   const work_id = dbo.work_version.work_id;
-  const doi = dbo.work_version.doi ?? dbo.submission.work?.doi;
+  const doi = resolveSiteWorkDoi({
+    submission: dbo.submission.doi,
+    workVersion: dbo.work_version.doi,
+    work: dbo.submission.work?.doi,
+  });
   const slug = dbo.submission.slugs.reduce(
     (primarySlug, next) => (primarySlug ? primarySlug : next.primary ? next.slug : undefined),
     undefined as string | undefined,

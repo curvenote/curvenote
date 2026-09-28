@@ -1,13 +1,17 @@
 import type { TagDTO } from '@curvenote/common';
+import { scopes } from '@curvenote/scms-core';
 import type { Context, TimelineCheckServiceRunRow, Workflow } from '@curvenote/scms-core';
 import {
   createPreviewToken,
   getConfiguredWorkflow,
   resolveWorkVersionCdnMedia,
   sites,
+  userHasScope,
+  userHasSiteScope,
   type SiteContext,
   type WorkVersionCdnMedia,
 } from '@curvenote/scms-server';
+import { loadDoiReadiness } from '../../backend/deposit/readiness.server.js';
 import {
   dbGetSubmissionCheckServiceRunsByWorkVersionIds,
   dbGetSiteAppData,
@@ -21,7 +25,9 @@ import {
   formatSubmissionDetailSubmission,
   formatSubmissionEditorCollections,
 } from './detail.format.server.js';
+import { doiRowState, loadDoiRegistrationView } from './doiRegistration.server.js';
 import type {
+  DoiRowState,
   MagicLinkWithAccessCount,
   SiteWithAppData,
   SubmissionDetailSiteContext,
@@ -52,6 +58,13 @@ export type SubmissionDetailPageData = {
   /** Active work version CDN config.json (null when no CDN); for MEDIA and upcoming sections. */
   activeVersionCdnConfig: WorkVersionCdnMedia['cdnConfig'];
   siteTags: TagDTO[];
+  /**
+   * What the DOI row shows. Registration and the Register flow need site:doi:read and the per-user
+   * DOI preview flag; without them the row only ever shows the DOI.
+   */
+  doiRow: DoiRowState;
+  /** Whether the viewer may register or retry a DOI: site.doi.register plus the feature flag. */
+  canRegisterDoi: boolean;
 };
 
 export async function loadSubmissionDetailPage(
@@ -77,20 +90,34 @@ export async function loadSubmissionDetailPage(
     ctx.$config.api.previewSigningSecret,
   );
 
-  const [siteWithAppData, slugs, poll, magicLinks, checkServiceRunsByWorkVersionId, siteTags] =
-    await Promise.all([
-      dbGetSiteAppData(siteName),
-      dbListSubmissionSlugRows(submissionId),
-      dbShouldPollSubmissionVersions(
-        ctx.site.id,
-        submissionVersions.map((v) => v.id),
-      ),
-      dbListMagicLinksForSubmission(submissionId),
-      dbGetSubmissionCheckServiceRunsByWorkVersionIds(
-        submissionVersions.map((version) => version.site_work.version_id),
-      ),
-      sites.tags.dbListSiteTags(ctx.site.id),
-    ]);
+  const canSeeDoi =
+    userHasSiteScope(ctx.user, scopes.site.doi.read, ctx.site.id) &&
+    userHasScope(ctx.user, scopes.app.sites.doi.feature);
+  const canRegisterDoi =
+    canSeeDoi && userHasSiteScope(ctx.user, scopes.site.doi.register, ctx.site.id);
+
+  const [
+    siteWithAppData,
+    slugs,
+    poll,
+    magicLinks,
+    checkServiceRunsByWorkVersionId,
+    siteTags,
+    doiRegistration,
+  ] = await Promise.all([
+    dbGetSiteAppData(siteName),
+    dbListSubmissionSlugRows(submissionId),
+    dbShouldPollSubmissionVersions(
+      ctx.site.id,
+      submissionVersions.map((v) => v.id),
+    ),
+    dbListMagicLinksForSubmission(submissionId),
+    dbGetSubmissionCheckServiceRunsByWorkVersionIds(
+      submissionVersions.map((version) => version.site_work.version_id),
+    ),
+    sites.tags.dbListSiteTags(ctx.site.id),
+    canSeeDoi ? loadDoiRegistrationView(ctx.site.id, submissionId) : null,
+  ]);
 
   if (!siteWithAppData) {
     return null;
@@ -137,5 +164,11 @@ export async function loadSubmissionDetailPage(
     mediaThumbnailUrl,
     activeVersionCdnConfig,
     siteTags,
+    doiRow: doiRowState({
+      doi: activeVersion.site_work.doi,
+      registration: doiRegistration,
+      startReadiness: canSeeDoi ? () => loadDoiReadiness(ctx, submissionId) : null,
+    }),
+    canRegisterDoi,
   };
 }

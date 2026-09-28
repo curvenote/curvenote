@@ -3,6 +3,8 @@ import { SkeletonFooter } from './SkeletonFooter.js';
 import { Hotspot, type OnSelectTarget } from './designTargets.js';
 import { GlobeIcon, MicroscopeIcon, MoonIcon, SunIcon } from 'lucide-react';
 import { useState } from 'react';
+import { buildFontCss, googleFontsHref } from '../../themeConfig/fonts.js';
+import type { ThemeFontsConfig } from '../../themeConfig/types.js';
 
 type SiteSkeletonProps = {
   site: SiteDTO;
@@ -16,9 +18,25 @@ type SiteSkeletonProps = {
   footerLinks?: FooterLink[][];
   themeColorPrimary?: string;
   themeColorSecondary?: string;
+  /** Site fonts, applied to the preview the way the theme applies them to a page. */
+  fonts?: ThemeFontsConfig;
   /** When set, regions of the preview can be clicked to jump to their settings. */
   onSelect?: OnSelectTarget;
 };
+
+/*
+ * The theme's default stacks, so an unset slot previews as the site would render it. Kept in
+ * step with next-theme packages/styles/fonts.css.
+ */
+const PREVIEW_FONT_DEFAULTS = `
+.site-preview {
+  --font-body: 'Noto Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-body);
+  --font-small: var(--font-body);
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}`;
+const PREVIEW_DEFAULT_GOOGLE =
+  'https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap';
 
 export function SiteSkeleton({
   site,
@@ -32,14 +50,25 @@ export function SiteSkeleton({
   footerLinks,
   themeColorPrimary = '#3b82f6',
   themeColorSecondary = '#64748b',
+  fonts,
   onSelect,
 }: SiteSkeletonProps) {
   const [isDark, setIsDark] = useState(false);
 
   const displayLogo = isDark && logoDarkUrl ? logoDarkUrl : logoUrl;
+  const fontCss = buildFontCss(fonts, { scope: '.site-preview' });
+  const googleHref = googleFontsHref(fonts);
+  // The theme loads Noto Sans for an unset body slot; do the same so "default" previews truly
+  const needsDefaultBody = !fonts?.body;
+  const textColor = isDark ? '#f1f5f9' : '#0f172a';
+  const mutedColor = isDark ? '#94a3b8' : '#64748b';
 
   return (
-    <div className="w-full overflow-hidden border rounded-lg shadow-sm border-stone-300 dark:border-stone-600">
+    <div className="site-preview w-full overflow-hidden border rounded-lg shadow-sm border-stone-300 dark:border-stone-600">
+      {/* Fonts, scoped to the preview so the admin's own chrome is untouched */}
+      <style dangerouslySetInnerHTML={{ __html: `${PREVIEW_FONT_DEFAULTS}\n${fontCss}` }} />
+      {needsDefaultBody && <link rel="stylesheet" href={PREVIEW_DEFAULT_GOOGLE} />}
+      {googleHref && <link rel="stylesheet" href={googleHref} />}
       {/* Browser chrome */}
       <div className="flex items-center gap-3 px-3 py-2 border-b bg-stone-100 border-stone-200 dark:bg-stone-800 dark:border-stone-700">
         <div className="flex gap-1.5 flex-shrink-0">
@@ -152,8 +181,20 @@ export function SiteSkeleton({
             />
           )}
 
-          {/* Title placeholder */}
-          <div className="w-3/4 h-8 rounded pointer-events-none bg-white/90" />
+          {/* Title in the heading font; clicking it edits that slot */}
+          <Hotspot
+            target="fonts.heading"
+            label="Edit heading font"
+            onSelect={onSelect}
+            className="relative max-w-[80%] px-2"
+          >
+            <div
+              className="text-2xl font-bold leading-tight text-center text-white"
+              style={{ fontFamily: 'var(--font-heading)' }}
+            >
+              {site.title}
+            </div>
+          </Hotspot>
 
           {/* Subtitle placeholder */}
           <div className="w-1/2 h-6 rounded pointer-events-none bg-white/80" />
@@ -178,7 +219,30 @@ export function SiteSkeleton({
         {/* Bottom Cards Section */}
         <div className="px-6 py-8" style={{ backgroundColor: isDark ? '#0f172a' : '#ffffff' }}>
           <div className="grid grid-cols-3 gap-4">
-            {[1, 2, 3].map((i) => (
+            {/* First card carries sample text so body and small fonts can be seen */}
+            <div
+              className="flex flex-col justify-between gap-2 p-3 rounded-lg aspect-square"
+              style={{ backgroundColor: isDark ? '#1e293b' : '#f1f5f9' }}
+            >
+              <Hotspot target="fonts.body" label="Edit body font" onSelect={onSelect}>
+                <p
+                  className="text-xs leading-snug line-clamp-4"
+                  style={{ fontFamily: 'var(--font-body)', color: textColor }}
+                >
+                  Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor
+                  incididunt ut labore et dolore magna aliqua.
+                </p>
+              </Hotspot>
+              <Hotspot target="fonts.small" label="Edit small text font" onSelect={onSelect}>
+                <p
+                  className="text-[10px] leading-tight"
+                  style={{ fontFamily: 'var(--font-small)', color: mutedColor }}
+                >
+                  Figure 1: Caption in the small text font.
+                </p>
+              </Hotspot>
+            </div>
+            {[2, 3].map((i) => (
               <div
                 key={i}
                 className="flex items-center justify-center rounded-lg aspect-square"

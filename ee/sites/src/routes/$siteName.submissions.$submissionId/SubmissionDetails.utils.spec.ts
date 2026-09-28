@@ -63,6 +63,7 @@ describe('SUBMISSION_DETAIL_FORM_ACTIONS', () => {
       slugSetPrimary: 'slug-set-primary',
       tagAssign: 'tag-assign',
       tagRemove: 'tag-remove',
+      registerDoi: 'register-doi',
     });
   });
 });

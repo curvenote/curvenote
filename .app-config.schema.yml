@@ -373,6 +373,33 @@ properties:
             type: string
             secret: true
             description: Anthropic API key for Claude
+      crossref:
+        type: object
+        description: Crossref deposit system. Host is doi.crossref.org in production, test.crossref.org elsewhere.
+        required: [host, depositorEmail, password, prefix, role, resourceUrlBase]
+        properties:
+          host:
+            type: string
+            description: Base URL, e.g. https://test.crossref.org
+          allowTestHost:
+            type: boolean
+            description: Needed to use test.crossref.org; production never sets it.
+          depositorEmail:
+            type: string
+            description: Account email; the login is <depositorEmail>/<role>, e.g. doi@curvenote.com
+          password:
+            type: string
+            secret: true
+            description: Password for depositorEmail on this host
+          prefix:
+            type: string
+            description: Curvenote's own DOI prefix, e.g. 10.62329. Used by sites on Curvenote-managed registration.
+          role:
+            type: string
+            description: Curvenote's own Crossref role, e.g. curv. The login is <depositorEmail>/<role>.
+          resourceUrlBase:
+            type: string
+            description: Base of the landing page URL each deposited DOI resolves to, e.g. https://doi.curvenote.com. The DOI is appended as <resourceUrlBase>/<doi>.
       sessionTokenIssuer:
         type: string
       tokenConfigUrl:

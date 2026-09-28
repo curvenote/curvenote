@@ -6,11 +6,10 @@ import type { SiteDTO } from '@curvenote/common';
 export function SubmissionSettingsForm({ site }: { site: SiteDTO & { restricted: boolean } }) {
   const fetcher = useFetcher<{ error?: string; info?: string }>();
   const [restricted, setRestricted] = useState(site.restricted);
-  const [dirty, setDirty] = useState(false);
+  const dirty = restricted !== site.restricted;
 
   const handleReset = () => {
     setRestricted(site.restricted);
-    setDirty(false);
   };
 
   return (
@@ -20,7 +19,7 @@ export function SubmissionSettingsForm({ site }: { site: SiteDTO & { restricted:
         This setting controls who can make submissions to the venue. Private venues are always
         restricted.
       </p>
-      <fetcher.Form method="POST" className="m-0 space-y-4" onSubmit={() => setDirty(false)}>
+      <fetcher.Form method="POST" className="m-0 space-y-4">
         <input type="hidden" name="formAction" value="restrict" />
         <div className="flex items-center space-x-6">
           <div className="flex-none">
@@ -40,10 +39,7 @@ export function SubmissionSettingsForm({ site }: { site: SiteDTO & { restricted:
                   value="restricted"
                   checked={restricted}
                   disabled={site.private}
-                  onCheckedChange={(checked: boolean) => {
-                    setDirty(true);
-                    setRestricted(checked);
-                  }}
+                  onCheckedChange={(checked: boolean) => setRestricted(checked)}
                 />
                 <label
                   htmlFor="settings.restricted"

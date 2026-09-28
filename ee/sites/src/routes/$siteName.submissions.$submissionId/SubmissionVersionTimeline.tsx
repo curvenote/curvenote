@@ -153,6 +153,19 @@ function getActivityDetails(activity: SubmissionDetailActivity): ReactNode {
     return <ActivityDetailRows rows={[['Version date', versionDateNode]]} />;
   }
 
+  if (activity.doi_registration) {
+    return (
+      <ActivityDetailRows
+        rows={[
+          ['DOI', activity.doi_registration.doi],
+          ['Reason', activity.doi_registration.reason],
+          ["Crossref's message", activity.doi_registration.detail],
+          ['Warning', activity.doi_registration.warning],
+        ]}
+      />
+    );
+  }
+
   return null;
 }
 

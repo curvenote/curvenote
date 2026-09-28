@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<doi_batch_diagnostic status="completed" sp="cs-test-ds-01">
+   <submission_id>1735620245</submission_id>
+   <batch_id>b8d0b4aa-fd3b-4275-8a60-b63721778b36</batch_id>
+   <record_diagnostic status="Success">
+      <doi>10.62329/spike-b8d0b4aa</doi>
+      <msg>Successfully added</msg>
+   </record_diagnostic>
+   <batch_data>
+      <record_count>1</record_count>
+      <success_count>1</success_count>
+      <warning_count>0</warning_count>
+      <failure_count>0</failure_count>
+   </batch_data>
+</doi_batch_diagnostic>
+

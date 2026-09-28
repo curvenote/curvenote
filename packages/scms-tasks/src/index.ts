@@ -5,3 +5,4 @@ export * from './works.js';
 export * from './uploads.js';
 export * from './jobs.js';
 export * from './submissions.js';
+export * from './dockerFetch.js';

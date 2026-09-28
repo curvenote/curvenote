@@ -2,6 +2,7 @@ import {
   TAG_LABEL_MAX_LENGTH,
   isValidTagLabel,
   isValidTagName,
+  plural,
   toTagName,
 } from '@curvenote/scms-core';
 
@@ -110,6 +111,20 @@ export function getDeleteDialogAlertError(input: DeleteDialogAlertErrorInput): s
     return undefined;
   }
   return input.fetcherMessage;
+}
+
+export type DeleteTagDescriptionInput = {
+  label: string;
+  submissionCount: number;
+};
+
+export function getDeleteTagDescription(input: DeleteTagDescriptionInput): string {
+  const catalog = `This deletes "${input.label}" from the catalog`;
+  const impact =
+    input.submissionCount > 0
+      ? `${catalog} and removes the tag from ${plural('%s submission(s)', input.submissionCount)}.`
+      : `${catalog}. No submissions use it.`;
+  return `${impact} This cannot be undone.`;
 }
 
 export function resolveTagCatalogOutcome(

@@ -108,6 +108,13 @@ export default defineConfig(async ({ mode }) => {
         /@radix-ui\/.*/,
         /@heroicons\/.*/,
         /@headlessui\/.*/,
+        // myst-transforms imports katex's raw ESM source ('katex/contrib/mhchem/mhchem.js'), which
+        // katex's package.json doesn't mark as ESM. Node only loads it when it detects ESM syntax,
+        // and Vercel's runtime doesn't. Bundling the whole chain lets Vite resolve it instead.
+        'crossref-utils-sdk',
+        'myst-to-jats',
+        'myst-transforms',
+        'katex',
       ],
     },
     plugins: [

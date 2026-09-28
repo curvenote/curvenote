@@ -1,7 +1,8 @@
 import { formatDate, type TagDTO } from '@curvenote/common';
 import type { SiteContext } from '@curvenote/scms-server';
 import { signPrivateUrls } from '@curvenote/scms-server';
-import { coerceToObject, type WorkflowTransition } from '@curvenote/scms-core';
+import { coerceToObject, resolveSiteWorkDoi, type WorkflowTransition } from '@curvenote/scms-core';
+import { describeDoiFailure } from '../../backend/registration/failure.js';
 import { formatSiteLayoutSite } from '../$siteName/layout.format.server.js';
 import { findImportantVersions } from '../$siteName.submissions._index/listing.utils.server.js';
 import type {
@@ -46,7 +47,11 @@ function formatDetailSiteWork(
     title: wv.title ?? '',
     description: wv.description ?? undefined,
     authors: wv.authors.map((name) => ({ name })),
-    doi: wv.doi ?? submission.work?.doi ?? undefined,
+    doi: resolveSiteWorkDoi({
+      submission: submission.doi,
+      workVersion: wv.doi,
+      work: submission.work?.doi,
+    }),
     key: submission.work?.key ?? undefined,
     links: {
       thumbnail,
@@ -77,6 +82,23 @@ function formatDetailVersion(
   };
 }
 
+type DoiRegistrationActivity = NonNullable<SubmissionDetailActivity['doi_registration']>;
+
+/** A failure's stored `error` is a code or Crossref's words; the timeline shows neither raw. */
+function formatDoiRegistrationActivity(
+  doi: string,
+  error: unknown,
+  warning: unknown,
+): DoiRegistrationActivity {
+  const failure = typeof error === 'string' && error ? describeDoiFailure(error) : undefined;
+  return {
+    doi,
+    reason: failure?.summary,
+    detail: failure?.detail,
+    warning: typeof warning === 'string' && warning ? warning : undefined,
+  };
+}
+
 function formatDetailActivity(
   ctx: SiteContext,
   activity: SubmissionDetailRow['activity'][number],
@@ -102,6 +124,11 @@ function formatDetailActivity(
         }
       : undefined;
 
+  const doiRegistration =
+    activity.activity_type.startsWith('DOI_REGISTRATION_') && typeof data?.doi === 'string'
+      ? formatDoiRegistrationActivity(data.doi, data.error, data.warning)
+      : undefined;
+
   return {
     id: activity.id,
     date_created: formatDate(activity.date_created),
@@ -124,6 +151,7 @@ function formatDetailActivity(
     date_published: activity.date_published ?? undefined,
     job_failure: jobFailure,
     tag_change: tagChange,
+    doi_registration: doiRegistration,
   };
 }
 

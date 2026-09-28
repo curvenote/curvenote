@@ -37,13 +37,15 @@ export type WorkVersionPayload = {
  * - docx-pd-curvenote-pdf (alias: docx-pandoc-myst-pdf): Word → Pandoc → Curvenote/Typst → PDF
  * - docx-lowriter-pdf: Word → LibreOffice Writer → PDF
  * - docx-pd-curvenote-web (alias: docx-pandoc-myst-web): Word → Pandoc → web article → CDN
+ * - myst-curvenote-web: Existing MyST package on CDN → web article site build → CDN
  */
 export type ConversionType =
   | 'docx-pd-curvenote-pdf'
   | 'docx-pandoc-myst-pdf'
   | 'docx-lowriter-pdf'
   | 'docx-pd-curvenote-web'
-  | 'docx-pandoc-myst-web';
+  | 'docx-pandoc-myst-web'
+  | 'myst-curvenote-web';
 
 export type ConverterTarget = 'pdf' | 'web';
 
@@ -53,6 +55,7 @@ export const CONVERSION_TYPES: readonly ConversionType[] = [
   'docx-lowriter-pdf',
   'docx-pd-curvenote-web',
   'docx-pandoc-myst-web',
+  'myst-curvenote-web',
 ] as const;
 
 export const CONVERTER_TARGETS: readonly ConverterTarget[] = ['pdf', 'web'] as const;
@@ -64,6 +67,7 @@ export const CONVERSION_TYPE_TARGET: Record<ConversionType, ConverterTarget> = {
   'docx-lowriter-pdf': 'pdf',
   'docx-pd-curvenote-web': 'web',
   'docx-pandoc-myst-web': 'web',
+  'myst-curvenote-web': 'web',
 };
 
 /** Message payload for converter task (decoded from Pub/Sub message.data). */

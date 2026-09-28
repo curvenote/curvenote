@@ -1,0 +1,191 @@
+// eslint-disable-next-line import/no-extraneous-dependencies
+import { describe, expect, it } from 'vitest';
+// eslint-disable-next-line import/no-extraneous-dependencies
+import { toXml } from 'xast-util-to-xml';
+import { publicationDateXml } from 'crossref-utils-sdk';
+import { toDeposit } from './mapper.js';
+import { lapalmaOptions, lapalmaSource } from './fixtures/source.lapalma.js';
+
+describe('toDeposit', () => {
+  it('blocks a kind that cannot receive DOIs, naming it', () => {
+    const { preprint, issues } = toDeposit(
+      lapalmaSource({ kind: { title: 'Blog', doiContentType: null } }),
+      lapalmaOptions,
+    );
+    expect(preprint).toBeUndefined();
+    expect(issues).toContainEqual({
+      severity: 'blocking',
+      code: 'kind_not_eligible',
+      message:
+        'Submissions of kind "Blog" can\'t receive DOIs. A site admin can enable it in DOI Registration.',
+    });
+  });
+
+  it('maps a complete source with no issues', () => {
+    const { preprint, batch, issues } = toDeposit(lapalmaSource(), lapalmaOptions);
+    expect(issues).toEqual([]);
+    expect(batch).toEqual({
+      id: '019a-batch',
+      timestamp: 1_700_000_000_000,
+      depositor: { name: 'Curvenote', email: 'doi@curvenote.com' },
+    });
+    expect(preprint).toMatchObject({
+      title: 'La Palma Seismicity 2021',
+      subtitle: 'An analysis of earthquake swarms',
+      date: new Date('2022-10-11T00:00:00.000Z'),
+      license: 'https://creativecommons.org/licenses/by-sa/4.0/',
+      doi_data: {
+        doi: '10.62329/abcd1234',
+        resource: 'https://doi.example.com/10.62329/abcd1234',
+      },
+      citations: { Oldenburg_2005: '10.1190/1.9781560801719.ch5' },
+    });
+    expect(toXml(preprint!.abstract!)).toContain('<jats:p>In September 2021');
+    expect(toXml(preprint!.contributors!)).toContain('<surname>Purves</surname>');
+  });
+
+  it('summarises the same values the preprint is built from', () => {
+    const { summary } = toDeposit(lapalmaSource(), lapalmaOptions);
+    expect(summary).toEqual({
+      title: 'La Palma Seismicity 2021',
+      subtitle: 'An analysis of earthquake swarms',
+      date: '2022-10-11',
+      authors: expect.arrayContaining([{ name: 'Steve Purves', orcid: '0000-0002-0760-5497' }]),
+      license: 'https://creativecommons.org/licenses/by-sa/4.0/',
+      hasAbstract: true,
+      citationCount: 1,
+    });
+  });
+
+  it('summarises the calendar day the preprint deposits', () => {
+    const { preprint, summary } = toDeposit(
+      lapalmaSource({ dates: { submissionPublished: '2026-06-19' } }),
+      lapalmaOptions,
+    );
+    expect(toXml(publicationDateXml(preprint!.date)!)).toContain('<day>19</day>');
+    expect(summary?.date).toBe('2026-06-19');
+  });
+
+  it('leaves the summary out when something blocks', () => {
+    const { summary } = toDeposit(lapalmaSource({ frontmatter: { authors: [] } }), lapalmaOptions);
+    expect(summary).toBeUndefined();
+  });
+
+  it('uses the first publication as posted date, then WorkVersion.date', () => {
+    const withoutSubmission = toDeposit(
+      lapalmaSource({ dates: { workVersion: '2021-11-10T00:00:00.000Z' } }),
+      lapalmaOptions,
+    );
+    expect(withoutSubmission.preprint?.date).toEqual(new Date('2021-11-10T00:00:00.000Z'));
+  });
+
+  it('blocks on missing title, missing date and inactive site', () => {
+    const { preprint, issues } = toDeposit(
+      lapalmaSource({
+        frontmatter: { authors: [] },
+        dates: {},
+        doiConfig: { status: 'PENDING_ROLE', prefix: '10.5555', role: null },
+      }),
+      lapalmaOptions,
+    );
+    expect(preprint).toBeUndefined();
+    expect(issues.filter((i) => i.severity === 'blocking').map((i) => i.code)).toEqual([
+      'site_not_active',
+      'missing_title',
+      'missing_date',
+    ]);
+  });
+
+  it('warns on missing abstract, license and authors', () => {
+    const { preprint, issues } = toDeposit(
+      lapalmaSource({
+        abstractMdast: undefined,
+        frontmatter: { title: 'T', authors: [], license: undefined },
+      }),
+      lapalmaOptions,
+    );
+    expect(preprint).toBeDefined();
+    expect(preprint?.license).toBeUndefined();
+    expect(preprint?.abstract).toBeUndefined();
+    expect(issues.map((i) => i.message)).toEqual([
+      'No authors found',
+      'No abstract found',
+      'No license information found',
+    ]);
+  });
+
+  it('deposits a non-CC license that has a URL', () => {
+    const { preprint, summary, issues } = toDeposit(
+      lapalmaSource({
+        frontmatter: {
+          ...lapalmaSource().frontmatter,
+          license: { content: { id: 'MIT', url: 'https://opensource.org/licenses/MIT' } },
+        },
+      }),
+      lapalmaOptions,
+    );
+    expect(preprint?.license).toBe('https://opensource.org/licenses/MIT');
+    expect(summary?.license).toBe('https://opensource.org/licenses/MIT');
+    expect(issues).toEqual([]);
+  });
+
+  it('names a license that has no URL and leaves it out', () => {
+    const { preprint, issues } = toDeposit(
+      lapalmaSource({
+        frontmatter: {
+          ...lapalmaSource().frontmatter,
+          license: { content: { id: 'Proprietary' } },
+        },
+      }),
+      lapalmaOptions,
+    );
+    expect(preprint?.license).toBeUndefined();
+    expect(issues).toEqual([
+      {
+        severity: 'warning',
+        code: 'license_without_url',
+        message: 'License "Proprietary" will not be included because it has no URL',
+      },
+    ]);
+  });
+
+  it('blocks when a person has a single name', () => {
+    const { preprint, summary, issues } = toDeposit(
+      lapalmaSource({
+        frontmatter: { ...lapalmaSource().frontmatter, authors: [{ name: 'BNextLabs' }] },
+      }),
+      lapalmaOptions,
+    );
+    expect(preprint).toBeUndefined();
+    expect(summary).toBeUndefined();
+    expect(issues.filter((i) => i.severity === 'blocking').map((i) => i.code)).toEqual([
+      'author_single_name',
+    ]);
+  });
+
+  it('omits citations when there are none', () => {
+    const { preprint } = toDeposit(lapalmaSource({ citations: {} }), lapalmaOptions);
+    expect(preprint?.citations).toBeUndefined();
+  });
+
+  it('does not mutate the source abstractMdast', () => {
+    // abstractFromMdast rewrites newlines in text nodes in place; a literal newline here makes
+    // that mutation observable, so this test actually fails without the defensive clone.
+    const abstractMdast = {
+      type: 'root',
+      children: [
+        {
+          type: 'block',
+          data: { part: 'abstract' },
+          children: [
+            { type: 'paragraph', children: [{ type: 'text', value: 'Line one\nline two.' }] },
+          ],
+        },
+      ],
+    };
+    const source = lapalmaSource({ abstractMdast });
+    const before = structuredClone(source.abstractMdast);
+    toDeposit(source, lapalmaOptions);
+    expect(source.abstractMdast).toEqual(before);
+  });
+});

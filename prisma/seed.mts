@@ -223,6 +223,27 @@ async function main() {
   summary.roles++;
   console.log(`   ✓ Created/updated role: ${checksPreviewRole.title} (${checksPreviewRole.name})`);
 
+  const doiPreviewScopes = ['app:sites:doi:feature'];
+  const doiPreviewRole = await prisma.role.upsert({
+    where: { name: 'doi-preview' },
+    create: {
+      id: 'doi-preview-role',
+      name: 'doi-preview',
+      title: 'DOI Preview',
+      description: 'Access to preview DOI registration for sites',
+      scopes: doiPreviewScopes,
+      createdBy: franklin.id,
+      date_created: startDateString,
+      date_modified: startDateString,
+    },
+    update: {
+      scopes: doiPreviewScopes,
+      date_modified: startDateString,
+    },
+  });
+  summary.roles++;
+  console.log(`   ✓ Created/updated role: ${doiPreviewRole.title} (${doiPreviewRole.name})`);
+
   const extractMetadataScopes = ['app:works:metadata-extract'];
   const extractMetadataRole = await prisma.role.upsert({
     where: { name: 'extract-metadata' },

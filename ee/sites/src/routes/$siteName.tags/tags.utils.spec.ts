@@ -4,6 +4,7 @@ import { TAG_LABEL_MAX_LENGTH } from '@curvenote/scms-core';
 import {
   getCreateTagDuplicateError,
   getDeleteDialogAlertError,
+  getDeleteTagDescription,
   getFetcherErrorParts,
   getTagDialogAlertError,
   getTagDialogIdleAction,
@@ -221,5 +222,25 @@ describe('getDeleteDialogAlertError', () => {
         fetcherMessage: undefined,
       }),
     ).toBeUndefined();
+  });
+});
+
+describe('getDeleteTagDescription', () => {
+  test('says no submissions use the tag when the count is zero', () => {
+    expect(getDeleteTagDescription({ label: 'Blog Post', submissionCount: 0 })).toBe(
+      'This deletes "Blog Post" from the catalog. No submissions use it. This cannot be undone.',
+    );
+  });
+
+  test('uses the singular for one submission', () => {
+    expect(getDeleteTagDescription({ label: 'Blog Post', submissionCount: 1 })).toBe(
+      'This deletes "Blog Post" from the catalog and removes the tag from 1 submission. This cannot be undone.',
+    );
+  });
+
+  test('uses the plural for several submissions', () => {
+    expect(getDeleteTagDescription({ label: 'Blog Post', submissionCount: 3 })).toBe(
+      'This deletes "Blog Post" from the catalog and removes the tag from 3 submissions. This cannot be undone.',
+    );
   });
 });

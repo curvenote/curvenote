@@ -82,6 +82,7 @@ export type IndexListingRow = {
   id: string;
   date_created: string;
   date_published: string | null;
+  doi: string | null;
   work: { doi: string | null } | null;
   kind: { id: string; name: string; content: Prisma.JsonValue };
   collection: {
@@ -114,6 +115,7 @@ const INDEX_LISTING_SELECT = {
   id: true,
   date_created: true,
   date_published: true,
+  doi: true,
   work: { select: { doi: true } },
   kind: { select: { id: true, name: true, content: true } },
   collection: {
@@ -276,6 +278,7 @@ function buildListingRawSqlWhere(siteId: string, query: ListingQuery): Prisma.Sq
     // Substring match across the newest version's title / authors / DOI and
     // the underlying work's DOI. Searches all versions of the submission, not
     // just the newest one — a hit on any version surfaces the submission.
+    // A DOI registered on the submission itself (Submission.doi) matches too.
     //
     // `immutable_array_to_string(authors, ' ')` MUST exactly match the
     // expression index in the trigram migration for the planner to use it.
@@ -287,18 +290,21 @@ function buildListingRawSqlWhere(siteId: string, query: ListingQuery): Prisma.Sq
     // exposed in the search box help popover. Only the escape character `\`
     // itself is escaped so a user-supplied backslash matches literally.
     const pattern = `%${escapeIlikePattern(query.q)}%`;
-    conds.push(Prisma.sql`EXISTS (
-      SELECT 1
-      FROM "SubmissionVersion" sv
-      JOIN "WorkVersion" wv ON wv.id = sv.work_version_id
-      LEFT JOIN "Work" w ON w.id = wv.work_id
-      WHERE sv.submission_id = s.id
-        AND (
-          wv.title ILIKE ${pattern}
-          OR wv.doi ILIKE ${pattern}
-          OR w.doi ILIKE ${pattern}
-          OR immutable_array_to_string(wv.authors, ' ') ILIKE ${pattern}
-        )
+    conds.push(Prisma.sql`(
+      s.doi ILIKE ${pattern}
+      OR EXISTS (
+        SELECT 1
+        FROM "SubmissionVersion" sv
+        JOIN "WorkVersion" wv ON wv.id = sv.work_version_id
+        LEFT JOIN "Work" w ON w.id = wv.work_id
+        WHERE sv.submission_id = s.id
+          AND (
+            wv.title ILIKE ${pattern}
+            OR wv.doi ILIKE ${pattern}
+            OR w.doi ILIKE ${pattern}
+            OR immutable_array_to_string(wv.authors, ' ') ILIKE ${pattern}
+          )
+      )
     )`);
   }
   return Prisma.join(conds, ' AND ');

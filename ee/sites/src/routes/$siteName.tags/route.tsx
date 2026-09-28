@@ -107,7 +107,7 @@ export default function TagsPage({ loaderData }: { loaderData: LoaderData }) {
           {tags.length === 0 ? (
             <tr>
               <td
-                colSpan={4}
+                colSpan={5}
                 className="py-4 text-sm text-center text-stone-500 dark:text-stone-400"
               >
                 No tags yet. Add a tag to use it on submissions.

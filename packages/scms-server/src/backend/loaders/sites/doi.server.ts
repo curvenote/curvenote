@@ -15,7 +15,47 @@ export type SiteDoiResolveOptions = {
 };
 
 /**
- * Resolve the id of the latest *published* submission version for a DOI on a site.
+ * `owned` is true when any submission, on any site, has this DOI. An owned DOI resolves only
+ * through `Submission.doi`: a work carrying the same DOI is a different work.
+ */
+type SubmissionDoiProbe = { owned: false } | { owned: true; id: string | null };
+
+/**
+ * DOIs registered through Curvenote live on `Submission.doi` (btree `Submission_doi_idx`).
+ * Probe that first: submission → its latest *published* version, scoped to the site.
+ *
+ * The outer join keeps the owning submission's row when nothing matches, so one query tells
+ * "no owner" (no rows) apart from "owned, but no published version on this site" (`sv.id` null).
+ */
+async function probeSubmissionDoi(
+  siteId: string,
+  doiNormalized: string,
+  tag?: string,
+): Promise<SubmissionDoiProbe> {
+  const prisma = await getPrismaClient();
+  const tagFilter = tag ? Prisma.sql`AND sv.tags @> ARRAY[${tag}]::text[]` : Prisma.empty;
+  const rows = await prisma.$queryRaw<{ id: string | null }[]>`
+    SELECT sv.id
+    FROM "Submission" s
+    LEFT JOIN "SubmissionVersion" sv
+      ON sv.submission_id = s.id
+     AND s.site_id = ${siteId}
+     AND sv.status = ${'PUBLISHED'}
+     ${tagFilter}
+    WHERE s.doi = ${doiNormalized}
+    ORDER BY sv.date_created DESC NULLS LAST
+    LIMIT 1
+  `;
+  const row = rows[0];
+  if (!row) {
+    return { owned: false };
+  }
+  return { owned: true, id: row.id };
+}
+
+/**
+ * Fallback for DOIs a work arrived with (`WorkVersion.doi` / `Work.doi`), used only when no
+ * submission owns the DOI.
  *
  * Starts from btree-backed DOI equality on `WorkVersion` / `Work` (migration
  * `20260529130000`), unions the matching work-version ids, then joins to
@@ -80,7 +120,10 @@ async function fetchPublishedSubmissionVersionIdByDoi(
 }
 
 async function dbGetPublishedSiteWorkByDoi(siteId: string, doiNormalized: string, tag?: string) {
-  const id = await fetchPublishedSubmissionVersionIdByDoi(siteId, doiNormalized, tag);
+  const probe = await probeSubmissionDoi(siteId, doiNormalized, tag);
+  const id = probe.owned
+    ? probe.id
+    : await fetchPublishedSubmissionVersionIdByDoi(siteId, doiNormalized, tag);
   if (!id) return null;
 
   const prisma = await getPrismaClient();

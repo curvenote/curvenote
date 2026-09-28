@@ -16,7 +16,10 @@ export type DesignTarget =
   | 'footer.logoDark'
   | 'footer.tagline'
   | 'footer.social'
-  | 'footer.links';
+  | 'footer.links'
+  | 'fonts.heading'
+  | 'fonts.body'
+  | 'fonts.small';
 
 /** Where each target lives in the panel: the accordion item, and the field wrapper's id. */
 export const DESIGN_TARGETS: Record<DesignTarget, { section: string; fieldId: string }> = {
@@ -31,6 +34,9 @@ export const DESIGN_TARGETS: Record<DesignTarget, { section: string; fieldId: st
   'footer.tagline': { section: 'item-footer', fieldId: 'field-tagline' },
   'footer.social': { section: 'item-footer', fieldId: 'field-social-links' },
   'footer.links': { section: 'item-footer', fieldId: 'field-footer-links' },
+  'fonts.heading': { section: 'item-typography', fieldId: 'field-font-heading' },
+  'fonts.body': { section: 'item-typography', fieldId: 'field-font-body' },
+  'fonts.small': { section: 'item-typography', fieldId: 'field-font-small' },
 };
 
 export type OnSelectTarget = (target: DesignTarget) => void;

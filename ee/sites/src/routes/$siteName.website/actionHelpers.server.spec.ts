@@ -13,7 +13,8 @@ vi.mock('@curvenote/scms-server', () => ({
 }));
 
 const ctx = {
-  site: { id: 'site-a' },
+  site: { id: 'site-a', metadata: {} },
+  user: { id: 'user-a' },
   trackEvent: vi.fn(),
   analytics: { flush: vi.fn() },
 } as unknown as SiteContext;
@@ -35,6 +36,10 @@ const rejection = (result: unknown) => result as Rejection;
 describe('$actionUpdateSiteDesign', () => {
   const metadataUpdate = vi.mocked(safeSiteMetadataUpdate);
   let siteUpdate: ReturnType<typeof vi.fn>;
+  let activityCreate: ReturnType<typeof vi.fn>;
+  /** The activity rows the action wrote, as `[type, data]`. */
+  const activities = () =>
+    activityCreate.mock.calls.map(([call]) => [call.data.activity_type, call.data.data]);
   /** Runs the updater the action passed in against a seed, to see what it would write. */
   const appliedMetadata = (seed: Record<string, unknown> = {}) => {
     const updater = metadataUpdate.mock.calls[0]?.[1] as
@@ -47,7 +52,11 @@ describe('$actionUpdateSiteDesign', () => {
     vi.clearAllMocks();
     metadataUpdate.mockResolvedValue(undefined as never);
     siteUpdate = vi.fn();
-    vi.mocked(getPrismaClient).mockResolvedValue({ site: { update: siteUpdate } } as never);
+    activityCreate = vi.fn();
+    vi.mocked(getPrismaClient).mockResolvedValue({
+      site: { update: siteUpdate },
+      activity: { create: activityCreate },
+    } as never);
   });
 
   describe('colors', () => {
@@ -235,5 +244,61 @@ describe('$actionUpdateSiteDesign', () => {
   it('does not track anything when validation fails', async () => {
     await run({ colorPrimary: 'nope' });
     expect(ctx.trackEvent).not.toHaveBeenCalled();
+    expect(activityCreate).not.toHaveBeenCalled();
+  });
+
+  describe('activity log', () => {
+    const cdn = 'https://cdn.curvenote.com/static/site/a';
+    const matter = { family: 'Matter', faces: [{ src: `${cdn}/M.woff2`, weight: 400 }] };
+    const license = { files: [{ src: `${cdn}/l.pdf`, name: 'l.pdf' }] };
+
+    it('records a design update naming the fields, by the acting user on the site', async () => {
+      await run({ tagline: 'hi', colorPrimary: '#112233' });
+      expect(activities()).toEqual([
+        ['SITE_DESIGN_UPDATED', { fields: ['tagline', 'color_primary'] }],
+      ]);
+      const [call] = activityCreate.mock.calls[0];
+      expect(call.data.activity_by).toEqual({ connect: { id: 'user-a' } });
+      expect(call.data.site).toEqual({ connect: { id: 'site-a' } });
+    });
+
+    it('records a fonts update separately from the design, with slots and sources', async () => {
+      await run({ fonts: { body: matter }, fontLicense: license });
+      expect(activities()).toEqual([
+        [
+          'SITE_FONTS_UPDATED',
+          {
+            fonts_changed: true,
+            slots: ['body'],
+            sources: { body: 'custom' },
+            license_changed: true,
+            license_files: 1,
+            verification_dropped: false,
+          },
+        ],
+      ]);
+    });
+
+    it('says when a font change dropped a previous verification', async () => {
+      ctx.site.metadata = {
+        theme_config: { fonts: { body: matter } },
+        font_license: { ...license, verified: true },
+      };
+      await run({
+        fonts: {
+          body: { ...matter, faces: [...matter.faces, { src: `${cdn}/B.woff2`, weight: 700 }] },
+        },
+      });
+      expect(activities()[0][1]).toMatchObject({
+        verification_dropped: true,
+        license_changed: false,
+      });
+      // and the stored license lost its flag even though only fonts were submitted
+      expect(appliedMetadata(ctx.site.metadata as Record<string, unknown>).font_license).toEqual({
+        files: license.files,
+        verified: undefined,
+      });
+      ctx.site.metadata = {};
+    });
   });
 });

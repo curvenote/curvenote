@@ -370,6 +370,31 @@ describe('dbListSiteTagsForCatalog', () => {
       label: catalog[0]?.label,
     });
     expect(picker[0]).not.toHaveProperty('date_created');
+    expect(picker[0]).not.toHaveProperty('submission_count');
+  });
+
+  test('counts every submission using the tag, listed or not', async () => {
+    const prisma = await getPrismaClient();
+    const submission = await prisma.submission.findUniqueOrThrow({
+      where: { id: testData.submissionId },
+      select: { is_listed: true },
+    });
+    expect(submission.is_listed).toBe(false);
+
+    await sites.tags.assignTagToSubmission({
+      siteId: testData.siteId,
+      submissionId: testData.submissionId,
+      userId: testData.userId,
+      input: { label: 'Assigned' },
+    });
+    await sites.tags.createSiteTag({ siteId: testData.siteId, label: 'Unused' });
+
+    const catalog = await sites.tags.dbListSiteTagsForCatalog(testData.siteId);
+    expect(catalog.map((row) => [row.label, row.submission_count])).toEqual([
+      ['Assigned', 1],
+      ['Unused', 0],
+    ]);
+    expect(catalog[0]).not.toHaveProperty('_count');
   });
 });
 

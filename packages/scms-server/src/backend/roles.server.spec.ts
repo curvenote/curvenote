@@ -9,6 +9,7 @@ import {
   hasSiteScope,
   hasWorkScope,
   isSystemRole,
+  isValidScopeFormat,
   MACHINE_SYSTEM_ROLES,
   SYSTEM_ROLES,
 } from './roles.server.js';
@@ -70,8 +71,11 @@ describe('DEFAULT_SYSTEM_ROLE_SCOPES', () => {
     expect(DEFAULT_SYSTEM_ROLE_SCOPES[SystemRole.SYSTEM_SERVICE]).toEqual([system.admin]);
   });
 
-  test('ADMIN retains system.admin', () => {
-    expect(DEFAULT_SYSTEM_ROLE_SCOPES[SystemRole.ADMIN]).toEqual([system.admin]);
+  test('ADMIN retains system.admin and web-article-generation', () => {
+    expect(DEFAULT_SYSTEM_ROLE_SCOPES[SystemRole.ADMIN]).toEqual([
+      system.admin,
+      'app:works:web-article-generation',
+    ]);
   });
 });
 
@@ -130,5 +134,34 @@ describe('site tags scopes', () => {
   test('MEMBER still has kinds.list and still lacks tags.list', () => {
     expect(hasSiteScope(SiteRole.MEMBER, site.kinds.list)).toBe(true);
     expect(hasSiteScope(SiteRole.MEMBER, site.tags.list)).toBe(false);
+  });
+});
+
+describe('site doi scopes', () => {
+  test('ADMIN has read, register and configure', () => {
+    for (const scope of [site.doi.read, site.doi.register, site.doi.configure]) {
+      expect(hasSiteScope(SiteRole.ADMIN, scope)).toBe(true);
+    }
+  });
+
+  test('MEMBER has read but not register or configure', () => {
+    expect(hasSiteScope(SiteRole.MEMBER, site.doi.read)).toBe(true);
+    expect(hasSiteScope(SiteRole.MEMBER, site.doi.register)).toBe(false);
+    expect(hasSiteScope(SiteRole.MEMBER, site.doi.configure)).toBe(false);
+  });
+
+  test.each([SiteRole.SUBMITTER, SiteRole.PUBLIC, SiteRole.UNRESTRICTED])(
+    '%s has no doi scopes',
+    (role) => {
+      for (const scope of [site.doi.read, site.doi.register, site.doi.configure]) {
+        expect(hasSiteScope(role, scope)).toBe(false);
+      }
+    },
+  );
+
+  test('doi scopes match the scope format', () => {
+    for (const scope of [site.doi.read, site.doi.register, site.doi.configure]) {
+      expect(isValidScopeFormat(scope)).toBe(true);
+    }
   });
 });

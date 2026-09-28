@@ -5,7 +5,6 @@ import type { Prisma } from '@curvenote/scms-db';
 import {
   SystemAdminBadge,
   PageFrame,
-  primitives,
   ui,
   site as siteScopes,
   getBrandingFromMetaMatches,
@@ -16,9 +15,14 @@ import {
   actionSaveSiteRestriction,
   actionUpdateSiteByJson,
   actionUpdateSiteSettings,
+  actionSetFontLicenseVerified,
 } from './actionHelper.server.js';
+import { actionSetDoiCustomPrefixEnabled } from './doiFlag.server.js';
+import { DoiCustomPrefixForm } from './DoiCustomPrefixForm.js';
 import { SubmissionSettingsForm } from './SubmissionSettingsForm.js';
 import { SiteMetadataForm } from './SiteMetadataForm.js';
+import { FontLicenseForm } from './FontLicenseForm.js';
+import type { FontLicense, SiteThemeConfig } from '../../themeConfig/types.js';
 import { SiteSettingsForm } from './SiteSettingsForm.js';
 import type { SiteDTO } from '@curvenote/common';
 import { getSiteWithAppData } from '../../backend/db.server.js';
@@ -62,7 +66,13 @@ export async function loader(args: LoaderFunctionArgs): Promise<LoaderData> {
 }
 
 const FormActionSchema = zfd.formData({
-  formAction: z.enum(['update-site', 'restrict', 'update-site-settings']),
+  formAction: z.enum([
+    'update-site',
+    'restrict',
+    'update-site-settings',
+    'set-doi-custom-prefix',
+    'font-license',
+  ]),
 });
 
 export async function action(args: ActionFunctionArgs) {
@@ -86,6 +96,10 @@ export async function action(args: ActionFunctionArgs) {
     return actionSaveSiteRestriction(ctx, formData);
   } else if (formAction === 'update-site-settings') {
     return actionUpdateSiteSettings(ctx, formData);
+  } else if (formAction === 'set-doi-custom-prefix') {
+    return actionSetDoiCustomPrefixEnabled(ctx, formData);
+  } else if (formAction === 'font-license') {
+    return actionSetFontLicenseVerified(ctx, formData);
   }
 
   return data({ error: 'Invalid form action' }, { status: 400 });
@@ -103,7 +117,7 @@ export default function Settings({ loaderData }: { loaderData: LoaderData }) {
     <PageFrame title="Site Settings" subtitle={`Manage the settings for ${site.title}`}>
       <div className="flex flex-col space-y-5">
         <SystemAdminBadge />
-        <primitives.Card lift className="px-6 py-4 space-y-4 max-w-4xl">
+        <ui.Card className="px-6 py-4 space-y-4 max-w-4xl">
           <h2>Site Information</h2>
           <p className="text-sm font-light">These fields cannot be changed.</p>
           <div className="space-y-4">
@@ -116,9 +130,14 @@ export default function Settings({ loaderData }: { loaderData: LoaderData }) {
               <ui.Input className="max-w-sm" disabled value={site.name} />
             </div>
           </div>
-        </primitives.Card>
+        </ui.Card>
         <SiteSettingsForm site={site} siteWithAppData={siteWithAppData} />
+        <DoiCustomPrefixForm siteWithAppData={siteWithAppData} />
         <SubmissionSettingsForm site={site} />
+        <FontLicenseForm
+          license={metadata.font_license as FontLicense | undefined}
+          fonts={(metadata.theme_config as SiteThemeConfig | undefined)?.fonts}
+        />
         <SiteMetadataForm site={site} metadata={metadata} />
       </div>
     </PageFrame>

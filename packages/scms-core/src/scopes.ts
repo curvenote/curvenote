@@ -48,6 +48,11 @@ export const site = {
     update: 'site:tags:update',
     delete: 'site:tags:delete',
   },
+  doi: {
+    read: 'site:doi:read',
+    register: 'site:doi:register',
+    configure: 'site:doi:configure',
+  },
   forms: {
     list: 'site:forms:list',
     read: 'site:forms:read',
@@ -131,6 +136,9 @@ export const app = {
     feature: 'app:sites:feature',
     read: 'app:sites:read',
     request: 'app:sites:request',
+    doi: {
+      feature: 'app:sites:doi:feature',
+    },
   },
   platform: { admin: 'app:platform:admin' },
   works: {
