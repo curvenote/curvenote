@@ -64,7 +64,7 @@ describe('contributorsFromFrontmatter', () => {
     expect(contributorsFromFrontmatter({})).toEqual({
       element: undefined,
       authors: [],
-      issues: [{ severity: 'warning', code: 'missing_authors', message: 'No authors found.' }],
+      issues: [{ severity: 'warning', code: 'missing_authors', message: 'No authors found' }],
     });
   });
 
@@ -83,9 +83,45 @@ describe('contributorsFromFrontmatter', () => {
     expect(xml).toContain('<ORCID>https://orcid.org/0000-0002-1825-009X</ORCID>');
   });
 
-  it('skips a single-word name with a warning', () => {
-    const { element, issues } = contributorsFromFrontmatter({ authors: [{ name: 'Plato' }] });
-    expect(element).toBeUndefined();
-    expect(issues.map((i) => i.code)).toEqual(['author_name_unparsed', 'missing_authors']);
+  it('blocks on a single-name person instead of leaving them out', () => {
+    const { element, issues } = contributorsFromFrontmatter({
+      authors: [
+        { name: 'Steve Purves', nameParsed: { given: 'Steve', family: 'Purves' } },
+        { name: 'BNextLabs' },
+      ],
+    });
+    expect(toXml(element!)).not.toContain('BNextLabs');
+    expect(issues).toEqual([
+      {
+        severity: 'blocking',
+        code: 'author_single_name',
+        message:
+          '"BNextLabs" has only one name and cannot be included in the Crossref record. If it is an organization, mark it as a collaboration; if it is a person, add their given name.',
+        path: 'authors[1]',
+      },
+    ]);
+  });
+
+  it('deposits a collaboration as an organization, in author order', () => {
+    const { element, authors, issues } = contributorsFromFrontmatter({
+      authors: [
+        { name: 'BNextLabs', collaboration: true },
+        { name: 'Steve Purves', nameParsed: { given: 'Steve', family: 'Purves' } },
+        { name: 'Project Jupyter', collaboration: true },
+      ],
+    });
+    expect(issues).toEqual([]);
+    const xml = toXml(element!);
+    expect(xml).toContain(
+      '<contributors><organization sequence="first" contributor_role="author">BNextLabs</organization><person_name sequence="additional" contributor_role="author">',
+    );
+    expect(xml).toContain(
+      '<organization sequence="additional" contributor_role="author">Project Jupyter</organization></contributors>',
+    );
+    expect(authors.map((author) => author.name)).toEqual([
+      'BNextLabs',
+      'Steve Purves',
+      'Project Jupyter',
+    ]);
   });
 });

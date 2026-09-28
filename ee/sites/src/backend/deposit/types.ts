@@ -13,6 +13,7 @@ export type DepositAuthor = {
   id?: string;
   name?: string;
   nameParsed?: { literal?: string; given?: string; family?: string };
+  collaboration?: boolean;
   orcid?: string;
   /** Affiliation ids, or bare names on older builds. */
   affiliations?: string[];

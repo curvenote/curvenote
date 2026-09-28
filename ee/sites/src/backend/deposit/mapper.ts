@@ -32,19 +32,23 @@ function postedDate(source: DepositSource): Date | undefined {
   return Number.isNaN(date.getTime()) ? undefined : date;
 }
 
-/** Only CC licences go to Crossref's AccessIndicators, as the crossref-utils CLI does. */
 function licenseUrl(source: DepositSource, issues: DepositIssue[]): string | undefined {
   const license = source.frontmatter.license;
   const content = typeof license === 'object' ? license?.content : undefined;
-  if (content?.CC && content.url) {
+  if (content?.url) {
     return content.url;
   }
-  issues.push(
-    warning(
-      'missing_license',
-      'No Creative Commons license found; the deposit carries no license.',
-    ),
-  );
+  const name = typeof license === 'string' ? license : content?.id;
+  if (name) {
+    issues.push(
+      warning(
+        'license_without_url',
+        `License "${name}" will not be included because it has no URL`,
+      ),
+    );
+  } else {
+    issues.push(warning('missing_license', 'No license information found'));
+  }
   return undefined;
 }
 
@@ -77,7 +81,7 @@ export function toDeposit(source: DepositSource, opts: DepositOptions): MappedDe
     ? abstractFromMdast(structuredClone(source.abstractMdast))
     : undefined;
   if (!abstract) {
-    issues.push(warning('missing_abstract', 'No abstract found.'));
+    issues.push(warning('missing_abstract', 'No abstract found'));
   }
   const license = licenseUrl(source, issues);
   // `!title || !date` is already a blocking issue; repeated so TypeScript narrows both.

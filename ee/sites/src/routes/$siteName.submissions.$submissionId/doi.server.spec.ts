@@ -89,20 +89,21 @@ describe('actionRegisterDoi', () => {
     expect(result.data).toEqual({ info: 'DOI registration started for 10.1/x.' });
   });
 
-  it('joins blocking issues into the error', async () => {
+  it('joins only the blocking issues into the error', async () => {
     vi.mocked(startRegistration).mockResolvedValue({
       ok: false,
       status: 400,
       error: 'The deposit is not ready.',
       issues: [
         { severity: 'blocking', code: 'missing_title', message: 'Title is missing.' },
-        { severity: 'blocking', code: 'missing_authors', message: 'No authors.' },
+        { severity: 'warning', code: 'missing_abstract', message: 'No abstract found' },
+        { severity: 'blocking', code: 'missing_date', message: 'No date.' },
       ],
     });
     const result = (await actionRegisterDoi(ctx, 'sub-1')) as Rejection;
     expect(result.init?.status).toBe(400);
     expect(result.data).toEqual({
-      error: 'The deposit is not ready. Title is missing. No authors.',
+      error: 'The deposit is not ready. Title is missing. No date.',
     });
   });
 

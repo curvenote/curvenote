@@ -51,7 +51,7 @@ describe('assembleDeposit', () => {
     const result = await assembleDeposit({} as any, 'sv-lapalma', opts);
     expect(result.xml).toBeDefined();
     expect(result.xml).toContain('<posted_content>');
-    expect(result.issues.map((i) => i.code)).toEqual(['missing_abstract', 'missing_license']);
+    expect(result.issues.map((i) => i.code)).toEqual(['missing_abstract', 'license_without_url']);
   });
 
   it('returns issues and no xml when the mapper blocks', async () => {

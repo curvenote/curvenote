@@ -4,6 +4,7 @@ import { ui } from '@curvenote/scms-core';
 import type { DepositIssue, DepositSummary } from '../../backend/deposit/types.js';
 import { formatPublicationDate } from '../../publicationDateCalendar.js';
 import type { RegisterDoiFetcher } from './DoiRow.js';
+import { ReadyAlert } from './ReadyAlert.js';
 import { SUBMISSION_DETAIL_FORM_ACTIONS } from './SubmissionDetails.utils.js';
 
 type SectionProps = {
@@ -33,47 +34,6 @@ function DetailRow({ label, children }: DetailRowProps) {
       <dt className="text-muted-foreground">{label}</dt>
       <dd className="min-w-0 break-words">{children}</dd>
     </div>
-  );
-}
-
-type ReadyAlertProps = {
-  warnings: DepositIssue[];
-};
-
-/** The design has no slot for warnings, so they ride on the ready callout. */
-function ReadyAlert({ warnings }: ReadyAlertProps) {
-  if (warnings.length === 0) {
-    return (
-      <ui.SimpleAlert
-        type="success"
-        size="compact"
-        message={
-          <>
-            <strong>Ready to register</strong>
-            <br />
-            All required information is available.
-          </>
-        }
-      />
-    );
-  }
-  return (
-    <ui.SimpleAlert
-      type="warning"
-      size="compact"
-      message={
-        <>
-          <strong>Ready to register</strong>
-          <br />
-          {/* SimpleAlert wraps the message in a <span>, so no block elements here. */}
-          {warnings.map((issue, index) => (
-            <span key={`${issue.code}-${index}`} className="block">
-              {issue.message}
-            </span>
-          ))}
-        </>
-      }
-    />
   );
 }
 
